@@ -6,6 +6,7 @@ import { v4 as uuidV4 } from 'uuid';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import { configDotenv } from 'dotenv';
+import takeScreenshot from 'youtube-screenshot';
 configDotenv({ path: path.resolve(__dirname, '../config/.env') });
 
 //setup server
@@ -46,13 +47,24 @@ app.post('/login', bodyParser.urlencoded({ extended: false }), (req, res) => {
         res.redirect(403, '/login');
     }
 });
+//get current frame from youtube
+app.get('/frame/youtube/:id/:timestamp', async (req, res) => {
+    if (typeof req.params.id !== 'string' || typeof req.params.timestamp !== 'string') {
+        return;
+    }
+    try {
+        console.log(`https://www.youtube.com/watch?v=${req.params.id}`, parseInt(req.params.timestamp), `./temp_screenshot_${req.params.id}`, 'temp.png');
+        await takeScreenshot(`https://www.youtube.com/watch?v=${req.params.id}`, parseInt(req.params.timestamp), `./temp_screenshot_${req.params.id}`, 'temp.png');
+    } catch (e) {
+        console.error(e);
+        res.sendStatus(400);
+        return;
+    }
+    res.sendFile(path.resolve(__dirname, `../temp_screenshot_${req.params.id}/temp.png`));
+});
 //main page
 app.get('/', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../../client/src/index.html'));
-});
-//get current frame from camera, an image, etc
-app.get('/frame', (req, res) => {
-
 });
 
 server.listen(process.env.PORT);

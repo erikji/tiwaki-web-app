@@ -11,6 +11,7 @@ const uuid_1 = require("uuid");
 const body_parser_1 = __importDefault(require("body-parser"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv_1 = require("dotenv");
+const youtube_screenshot_1 = __importDefault(require("youtube-screenshot"));
 (0, dotenv_1.configDotenv)({ path: path_1.default.resolve(__dirname, '../config/.env') });
 //setup server
 const app = (0, express_1.default)();
@@ -22,10 +23,8 @@ function verify(username, password) {
     return username == 'tiwaki' && password == 'tiwaki';
 }
 //http requests
+//require verification for everything except login screen
 app.use('/*', (req, res, next) => {
-    // require authentication for everything except the login screen
-    console.log(req.cookies, req.baseUrl);
-    console.log(req.cookies, req.cookies.token, sessionTokens.has(req.cookies.token), sessionTokens.entries);
     if (req.baseUrl == '/login')
         next();
     else if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token))
@@ -33,6 +32,7 @@ app.use('/*', (req, res, next) => {
     else
         next();
 });
+//login
 app.get('/login', (req, res) => {
     res.sendFile(path_1.default.resolve(__dirname, '../../client/src/login.html'));
 });
@@ -52,13 +52,33 @@ app.post('/login', body_parser_1.default.urlencoded({ extended: false }), (req, 
         res.redirect(403, '/login');
     }
 });
+//get current frame from youtube
+app.get('/frame/youtube/:id/:timestamp', async (req, res) => {
+    if (typeof req.params.id !== 'string' || typeof req.params.timestamp !== 'string') {
+        return;
+    }
+    try {
+        console.log(`https://www.youtube.com/watch?v=${req.params.id}`, parseInt(req.params.timestamp), `./temp_screenshot_${req.params.id}`, 'temp.png');
+        await (0, youtube_screenshot_1.default)(`https://www.youtube.com/watch?v=${req.params.id}`, parseInt(req.params.timestamp), `./temp_screenshot_${req.params.id}`, 'temp.png');
+    }
+    catch (e) {
+        console.error(e);
+        res.sendStatus(400);
+        return;
+    }
+    res.sendFile(path_1.default.resolve(__dirname, `../temp_screenshot_${req.params.id}/temp.png`));
+});
+//main page
+app.get('/', (req, res) => {
+    res.sendFile(path_1.default.resolve(__dirname, '../../client/src/index.html'));
+});
 server.listen(process.env.PORT);
 console.log(`listening on port ${process.env.PORT}`);
 setInterval(() => {
     sessionTokens.forEach((value, key, map) => {
         if (value.timeout < Date.now()) {
             map.delete(key);
-            console.log(key);
+            console.log(`deleting ${key}`);
         }
     });
 }, 5000);

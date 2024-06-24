@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main</title>
+    <style>
+        body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0px 0px;
+            font-family: sans-serif;
+            background-color: black;
+            color: white;
+        }
+
+        .row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: row;
+        }
+
+        .centered {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: max-content;
+        }
+
+        h1 {
+            font-size: 3vw;
+        }
+
+        input {
+            border: 4px solid white;
+            margin: 8px;
+            font-family: inherit;
+            background-color: transparent;
+            color: inherit;
+            font-size: 1.5vw;
+        }
+
+        input:invalid {
+            border-color: rgb(255, 69, 100);
+        }
+
+        button {
+            border: 4px solid white;
+            margin: 8px;
+            font-family: inherit;
+            background-color: transparent;
+            color: inherit;
+            font-size: 1.5vw;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="row">
+        <h1>Demo</h1>
+        <input type="text" name="Get Youtube URL" placeholder="Youtube URL" title="Youtube URL" maxlength="11" autocapitalize="off" id="youtubeurl">
+        <input type="text" name="Timestamp" placeholder="Timestamp" title="Timestamp" maxlength="16" autocapitalize="off" id="timestamp">
+        <button id="submit">Get Youtube URL</button>
+    </div>
+    <div class="centered">
+        <p id="youtubeimgerr"></p>
+        <img id='youtubeimg' style="height: 50vh;">
+    </div>
+    <script>
+        const blobToBase64 = blob => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onload = () => {
+                return new Promise(resolve => {
+                    reader.onloadend = () => {
+                        resolve(reader.result);
+                    };
+                });
+            }
+        };
+        document.getElementById('submit').onclick = async () => {
+            const res = await fetch(`frame/youtube/${document.getElementById('youtubeurl').value}/${document.getElementById('timestamp').value}`);
+            if (res.status == 400) {
+                document.getElementById('youtubeimgerr').innerHTML = res.status;
+            }
+            const reader = new FileReader();
+            const blob = reader.readAsDataURL(await res.blob());
+            reader.onload = () => {
+                document.getElementById('youtubeimg').src = reader.result;
+            }
+            // console.log(res);
+        }
+    </script>
+</body>
+
+</html>
