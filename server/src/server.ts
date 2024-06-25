@@ -28,6 +28,9 @@ app.use('/*', (req, res, next) => {
     else if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.redirect('/login');
     else next();
 });
+app.use('/public/*', (req, res) => {
+    res.send(path.resolve(__dirname, '../../client', req.path))
+});
 //login
 app.get('/login', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../../client/src/login.html'));
@@ -61,6 +64,12 @@ app.get('/frame/youtube/:id/:timestamp', async (req, res) => {
         return;
     }
     res.sendFile(path.resolve(__dirname, `../temp_screenshot_${req.params.id}/temp.png`));
+});
+//get current frame from webcam
+app.get('/frame/webcame/:id', async (req, res) => {
+    if (typeof req.params.id !== 'string') {
+        return;
+    }
 });
 //main page
 app.get('/', (req, res) => {

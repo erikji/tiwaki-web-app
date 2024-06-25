@@ -36,7 +36,7 @@
         }
 
         input {
-            border: 4px solid white;
+            /* border: 4px solid white; */
             margin: 8px;
             font-family: inherit;
             background-color: transparent;
@@ -56,44 +56,72 @@
             color: inherit;
             font-size: 1.5vw;
         }
+
+        button:hover {
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
     <div class="row">
-        <h1>Demo</h1>
-        <input type="text" name="Get Youtube URL" placeholder="Youtube URL" title="Youtube URL" maxlength="11" autocapitalize="off" id="youtubeurl">
-        <input type="text" name="Timestamp" placeholder="Timestamp" title="Timestamp" maxlength="16" autocapitalize="off" id="timestamp">
-        <button id="submit">Get Youtube URL</button>
+        <input type="file" id="imageupload" accept="image/*">
+        <button id="detect">Detect</button>
     </div>
     <div class="centered">
-        <p id="youtubeimgerr"></p>
-        <img id='youtubeimg' style="height: 50vh;">
+        <canvas id='img' height="640" width="640">
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
     <script>
-        const blobToBase64 = blob => {
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onload = () => {
-                return new Promise(resolve => {
-                    reader.onloadend = () => {
-                        resolve(reader.result);
-                    };
-                });
+        const sess = new onnx.InferenceSession();
+        const loadingModelPromise = sess.loadModel("public/model.onnx");
+
+        document.getElementById('imageupload').onchange = async (e) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(e.target.files[0]);
+            img.onload = () => {
+                document.getElementById('img').getContext('2d').drawImage(img, 0, 0, 640, 640);
             }
-        };
-        document.getElementById('submit').onclick = async () => {
-            const res = await fetch(`frame/youtube/${document.getElementById('youtubeurl').value}/${document.getElementById('timestamp').value}`);
-            if (res.status == 400) {
-                document.getElementById('youtubeimgerr').innerHTML = res.status;
+            const imgData = ctx.getImageData(0, 0, 640, 640);
+            const red = [];
+            const green = [];
+            const blue = [];
+            for (let i = 0; i < imgData.data.length; i += 4) {
+                red.push(imgData.data[i]);
+                green.push(imgData.data[i+1]);
+                blue.push(imgData.data[i+2]);
             }
-            const reader = new FileReader();
-            const blob = reader.readAsDataURL(await res.blob());
-            reader.onload = () => {
-                document.getElementById('youtubeimg').src = reader.result;
+            const transposed = red.concat(green).concat(blue);
+            console.log(transposed.length);
+            const float32 = new Float32Array(3 * 640 * 640);
+            for (let i = 0; i < transposed.length; i++) {
+                float32[i] = transposed[i] / 255.0;
             }
-            // console.log(res);
+            const inputTensor = new onnx.Tensor("float32", float32Data, [3, 640, 640]);
         }
+        // const blobToBase64 = blob => {
+        //     const reader = new FileReader();
+        //     reader.readAsDataURL(blob);
+        //     reader.onload = () => {
+        //         return new Promise(resolve => {
+        //             reader.onloadend = () => {
+        //                 resolve(reader.result);
+        //             };
+        //         });
+        //     }
+        // };
+        // document.getElementById('submit').onclick = async () => {
+        //     const res = await fetch(`frame/youtube/${document.getElementById('youtubeurl').value}/${document.getElementById('timestamp').value}`);
+        //     if (res.status >= 400) {
+        //         document.getElementById('youtubeimgerr').innerHTML = res.status;
+        //     }
+        //     const reader = new FileReader();
+        //     const blob = reader.readAsDataURL(await res.blob());
+        //     reader.onload = () => {
+        //         document.getElementById('youtubeimg').src = reader.result;
+        //     }
+        //     // console.log(res);
+        // }
     </script>
 </body>
 
