@@ -32,9 +32,6 @@ app.use('/*', (req, res, next) => {
     else
         next();
 });
-app.use('/public/*', (req, res) => {
-    res.send(path_1.default.resolve(__dirname, '../../client', req.path));
-});
 //login
 app.get('/login', (req, res) => {
     res.sendFile(path_1.default.resolve(__dirname, '../../client/src/login.html'));
@@ -76,10 +73,15 @@ app.get('/frame/webcame/:id', async (req, res) => {
     if (typeof req.params.id !== 'string') {
         return;
     }
+    //not done
 });
 //main page
 app.get('/', (req, res) => {
     res.sendFile(path_1.default.resolve(__dirname, '../../client/src/index.html'));
+});
+//spaghetti
+app.get('/client/*', (req, res) => {
+    res.sendFile(path_1.default.join(__dirname, '../..', req.path));
 });
 server.listen(process.env.PORT);
 console.log(`listening on port ${process.env.PORT}`);

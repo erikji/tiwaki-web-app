@@ -36,7 +36,7 @@
         }
 
         input {
-            /* border: 4px solid white; */
+            border: 4px solid white;
             margin: 8px;
             font-family: inherit;
             background-color: transparent;
@@ -60,69 +60,37 @@
         button:hover {
             cursor: pointer;
         }
+
+        button:disabled {
+            cursor: auto;
+            border: 4px solid gray;
+        }
+
+        canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
     </style>
 </head>
 
 <body>
     <div class="row">
-        <input type="file" id="imageupload" accept="image/*">
-        <button id="detect">Detect</button>
+        <input type="file" id="imageupload" accept="image/*" disabled>
+    </div>
+    <div class="row">
+        <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
     </div>
     <div class="centered">
-        <canvas id='img' height="640" width="640">
+        <div style="width: 50%; position: relative;">
+            <canvas id="img" height="640" width="640" style="z-index: 0"></canvas>
+            <canvas id="label" height="640" width="640" style="z-index: 1"></canvas>
+        </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
-    <script>
-        const sess = new onnx.InferenceSession();
-        const loadingModelPromise = sess.loadModel("public/model.onnx");
-
-        document.getElementById('imageupload').onchange = async (e) => {
-            const img = new Image();
-            img.src = URL.createObjectURL(e.target.files[0]);
-            img.onload = () => {
-                document.getElementById('img').getContext('2d').drawImage(img, 0, 0, 640, 640);
-            }
-            const imgData = ctx.getImageData(0, 0, 640, 640);
-            const red = [];
-            const green = [];
-            const blue = [];
-            for (let i = 0; i < imgData.data.length; i += 4) {
-                red.push(imgData.data[i]);
-                green.push(imgData.data[i+1]);
-                blue.push(imgData.data[i+2]);
-            }
-            const transposed = red.concat(green).concat(blue);
-            console.log(transposed.length);
-            const float32 = new Float32Array(3 * 640 * 640);
-            for (let i = 0; i < transposed.length; i++) {
-                float32[i] = transposed[i] / 255.0;
-            }
-            const inputTensor = new onnx.Tensor("float32", float32Data, [3, 640, 640]);
-        }
-        // const blobToBase64 = blob => {
-        //     const reader = new FileReader();
-        //     reader.readAsDataURL(blob);
-        //     reader.onload = () => {
-        //         return new Promise(resolve => {
-        //             reader.onloadend = () => {
-        //                 resolve(reader.result);
-        //             };
-        //         });
-        //     }
-        // };
-        // document.getElementById('submit').onclick = async () => {
-        //     const res = await fetch(`frame/youtube/${document.getElementById('youtubeurl').value}/${document.getElementById('timestamp').value}`);
-        //     if (res.status >= 400) {
-        //         document.getElementById('youtubeimgerr').innerHTML = res.status;
-        //     }
-        //     const reader = new FileReader();
-        //     const blob = reader.readAsDataURL(await res.blob());
-        //     reader.onload = () => {
-        //         document.getElementById('youtubeimg').src = reader.result;
-        //     }
-        //     // console.log(res);
-        // }
-    </script>
+    <br>
+    <div id="result" style="text-align: center"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.18.0/ort.min.js"></script>
+    <script src="client/src/index.js"></script>
 </body>
 
 </html>

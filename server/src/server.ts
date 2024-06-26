@@ -28,9 +28,6 @@ app.use('/*', (req, res, next) => {
     else if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.redirect('/login');
     else next();
 });
-app.use('/public/*', (req, res) => {
-    res.send(path.resolve(__dirname, '../../client', req.path))
-});
 //login
 app.get('/login', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../../client/src/login.html'));
@@ -70,11 +67,16 @@ app.get('/frame/webcame/:id', async (req, res) => {
     if (typeof req.params.id !== 'string') {
         return;
     }
+    //not done
 });
 //main page
 app.get('/', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../../client/src/index.html'));
 });
+//spaghetti
+app.get('/client/*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../..', req.path));
+})
 
 server.listen(process.env.PORT);
 console.log(`listening on port ${process.env.PORT}`);
