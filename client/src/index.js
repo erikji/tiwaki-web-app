@@ -4,6 +4,22 @@ const classMap = {
     2: 'Deer'
 }
 
+const colorMap = {
+    0: '#00FFFF',
+    1: '#FFFF00',
+    2: '#FF00FF'
+}
+
+const weekdayMap = {
+    0: 'Mon',
+    1: 'Tue',
+    2: 'Wed',
+    3: 'Thu',
+    4: 'Fri',
+    5: 'Sat',
+    6: 'Sun'
+}
+
 const numclasses = 3;
 
 const iou = (one, two) => {
@@ -68,7 +84,7 @@ const detect = async (sess, float32) => {
 }
 
 const toggleHide = (elmnt) => {
-    elmnt.style.display = elmnt.style.display == 'block' ? 'none' : 'block';
+    elmnt.style.display = elmnt.style.display == 'none' ? 'block' : 'none';
 }
 
 const loadONNX = async () => {
@@ -77,7 +93,7 @@ const loadONNX = async () => {
     document.getElementById('imageupload').disabled = false;
     document.getElementById('imageupload').onchange = async (e) => {
         document.getElementById('imageupload').disabled = true;
-        const imageCtx = document.getElementById('img').getContext('2d');
+        const imageCtx = document.getElementById('img').getContext('2d', {willReadFrequently: true});
         const labelCtx = document.getElementById('label').getContext('2d');
         const img = new Image();
         img.src = URL.createObjectURL(e.target.files[0]);
@@ -98,15 +114,16 @@ const loadONNX = async () => {
                 float32[i] = transposed[i] / 255.0;
             }
             const detected = await detect(sess, float32);
-            labelCtx.strokeStyle = 'cyan';
+            labelCtx.clearRect(0, 0, 640, 640);
             labelCtx.textAlign = 'center';
-            labelCtx.lineWidth = 5;
             for (const i of detected) {
+                labelCtx.strokeStyle = colorMap[i[5]] ?? 'cyan';
+                labelCtx.lineWidth = i[3]/60;
                 labelCtx.strokeRect(i[1] - i[3] / 2, i[2] - i[4] / 2, i[3], i[4]);
             }
-            labelCtx.font = '40px monospace';
-            labelCtx.lineWidth = 2;
             for (const i of detected) {
+                labelCtx.font = `${i[3]/5}px monospace`;
+                labelCtx.lineWidth = i[3]/100;
                 labelCtx.strokeText(i[5], i[1], i[2]);
             }
             document.getElementById('imageupload').disabled = false;
@@ -115,6 +132,72 @@ const loadONNX = async () => {
 }
 
 loadONNX();
+
+const toggleHour = (day, hour) => {
+    if (blockElmnts[day][hour].hasAttribute('disabled')) {
+        blockElmnts[day][hour].removeAttribute('disabled');
+    } else {
+        blockElmnts[day][hour].setAttribute('disabled', true);
+    }
+    
+    //update day
+    if (blockElmnts[day].some((elmnt) => elmnt.hasAttribute('disabled'))) {
+        weekElmnts[day].setAttribute('disabled', true);
+    } else {
+        weekElmnts[day].removeAttribute('disabled');
+    }
+}
+
+const toggleDay = (day) => {
+    if (blockElmnts[day].some((elmnt) => elmnt.hasAttribute('disabled'))) {
+        for (const hour of blockElmnts[day]) {
+            hour.removeAttribute('disabled');
+        }
+        weekElmnts[day].removeAttribute('disabled');
+    } else {
+        for (const hour of blockElmnts[day]) {
+            hour.setAttribute('disabled', true);
+        }
+        weekElmnts[day].setAttribute('disabled', true);
+    }
+}
+
+//smth like vue is probably better but whatever
+let blockElmnts = []
+let weekElmnts = []
+let hours = document.createElement('div');
+hours.setAttribute('class', 'day');
+document.getElementById('schedule').appendChild(hours);
+let pad = document.createElement('div');
+pad.setAttribute('class', 'daydesc');
+pad.setAttribute('disabled', true);
+hours.appendChild(pad);
+for (let hr = 0; hr < 24; hr++) {
+    let hourdesc = document.createElement('div');
+    hourdesc.setAttribute('class', 'hourdesc');
+    hourdesc.innerHTML = hr.toString();
+    hours.appendChild(hourdesc);
+}
+for (let day = 0; day < 7; day++) {
+    let today = document.createElement('div');
+    today.setAttribute('class', 'day');
+    document.getElementById('schedule').appendChild(today);
+    blockElmnts.push([]);
+
+    let daydesc = document.createElement('div');
+    daydesc.setAttribute('class', 'daydesc');
+    daydesc.setAttribute('onclick', `toggleDay(${day})`);
+    daydesc.innerHTML = weekdayMap[day];
+    today.appendChild(daydesc);
+    weekElmnts.push(daydesc);
+    for (let hr = 0; hr < 24; hr++) {
+        let hour = document.createElement('div');
+        hour.setAttribute('class', 'hour');
+        hour.setAttribute('onclick', `toggleHour(${day}, ${hr})`);
+        today.appendChild(hour);
+        blockElmnts[day].push(hour);
+    }
+}
 // const blobToBase64 = blob => {
 //     const reader = new FileReader();
 //     reader.readAsDataURL(blob);
