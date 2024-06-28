@@ -7,13 +7,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Main</title>
     <style>
-        body {
+        html, body {
             width: 100vw;
             height: 100vh;
             margin: 0px 0px;
             font-family: sans-serif;
             background-color: black;
             color: white;
+            text-align: center;
         }
 
         .row {
@@ -68,8 +69,12 @@
 
         canvas {
             position: absolute;
-            left: 0;
+            width: 30vw;
+            left: 0; 
+            right: 0; 
             top: 0;
+            margin-left: auto; 
+            margin-right: auto;
             border: 1px solid white;
         }
 
@@ -86,36 +91,21 @@
         }
 
         .daydesc {
-            height: 20px;
-            width: 40px;
-            text-align: center;
-            margin: 0px;
-            padding: 0px;
+            height: 2vw;
+            width: 4vw;
             background-color: rgb(0, 150, 0);
             border: 1px solid white;
+            font-size: 1.5vw;
         }
-
-        .daydesc[disabled] {
-            background-color: rgba(0, 0, 0, 0);
-        }
-
-        .hourdesc {
-            width: 20px;
-            border: 1px solid white;
-            text-align: center;
-        }
-
+        
         .hour {
             margin: 0px;
             padding: 0px;
-            width: 20px;
-            height: 20px;
-            border: 1px solid white;
+            width: 2vw;
+            height: 2vw;
             background-color: rgb(0, 150, 0);
-        }
-
-        .hour[disabled] {
-            background-color: rgba(0, 0, 0, 0);
+            border: 1px solid white;
+            font-size: 1.5vw;
         }
     </style>
 </head>
@@ -130,13 +120,13 @@
     <div class="row">
         <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
     </div>
-    <div class="centered">
-        <div style="width: 50%; position: relative;">
+    <div class="centered" style="position: relative">
             <canvas id="img" height="640" width="640" style="z-index: 0"></canvas>
             <canvas id="label" height="640" width="640" style="z-index: 1"></canvas>
-        </div>
+            <canvas id="userDrawing" height="640" width="640" style="z-index: 2"></canvas>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.18.0/ort.min.js"></script>
+    <script src="https://gojs.net/latest/extensions/PolygonDrawingTool.js"></script>
     <script src="client/src/index.js"></script>
 </body>
 

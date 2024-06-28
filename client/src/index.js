@@ -10,6 +10,8 @@ const colorMap = {
     2: '#FF00FF'
 }
 
+const NUM_CLASSES = 3;
+
 const weekdayMap = {
     0: 'Mon',
     1: 'Tue',
@@ -20,7 +22,8 @@ const weekdayMap = {
     6: 'Sun'
 }
 
-const numclasses = 3;
+const NUM_HOURS = 24;
+const NUM_DAYS = 7;
 
 const iou = (one, two) => {
     const bb1 = [one[0] - one[2] / 2, one[1] - one[3] / 2, one[0] + one[2] / 2, one[1] + one[3] / 2];
@@ -46,15 +49,15 @@ const detect = async (sess, float32) => {
     const inputTensor = new ort.Tensor('float32', float32, [1, 3, 640, 640]);
     const output = (await sess.run({images: inputTensor})).output0;
     let detected = [];
-    for (let i = 0; i < output.cpuData.length / (numclasses + 4); i++) {
-        for (let j = 4; j < numclasses + 4; j++) {
-            if (output.cpuData[i + j * (output.cpuData.length / (numclasses + 4))] > 0.5) {
+    for (let i = 0; i < output.cpuData.length / (NUM_CLASSES + 4); i++) {
+        for (let j = 4; j < NUM_CLASSES + 4; j++) {
+            if (output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))] > 0.5) {
                 cur = [
-                    output.cpuData[i + j * (output.cpuData.length / (numclasses + 4))],
-                    output.cpuData[i + 0 * (output.cpuData.length / (numclasses + 4))],
-                    output.cpuData[i + 1 * (output.cpuData.length / (numclasses + 4))],
-                    output.cpuData[i + 2 * (output.cpuData.length / (numclasses + 4))],
-                    output.cpuData[i + 3 * (output.cpuData.length / (numclasses + 4))],
+                    output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))],
+                    output.cpuData[i + 0 * (output.cpuData.length / (NUM_CLASSES + 4))],
+                    output.cpuData[i + 1 * (output.cpuData.length / (NUM_CLASSES + 4))],
+                    output.cpuData[i + 2 * (output.cpuData.length / (NUM_CLASSES + 4))],
+                    output.cpuData[i + 3 * (output.cpuData.length / (NUM_CLASSES + 4))],
                     classMap[j - 4]
                 ];
                 const newDetected = [];
@@ -133,52 +136,138 @@ const loadONNX = async () => {
 
 loadONNX();
 
-const toggleHour = (day, hour) => {
-    if (blockElmnts[day][hour].hasAttribute('disabled')) {
-        blockElmnts[day][hour].removeAttribute('disabled');
-    } else {
-        blockElmnts[day][hour].setAttribute('disabled', true);
-    }
-    
-    //update day
-    if (blockElmnts[day].some((elmnt) => elmnt.hasAttribute('disabled'))) {
-        weekElmnts[day].setAttribute('disabled', true);
-    } else {
-        weekElmnts[day].removeAttribute('disabled');
-    }
+const toggleDayHour = (day, hour) => {
+    state[day][hour] = !state[day][hour];
+    syncDayHour();
 }
 
 const toggleDay = (day) => {
-    if (blockElmnts[day].some((elmnt) => elmnt.hasAttribute('disabled'))) {
-        for (const hour of blockElmnts[day]) {
-            hour.removeAttribute('disabled');
+    if (state[day].some((v) => !v)) {
+        for (let i = 0; i < NUM_HOURS; i++) {
+            state[day][i] = true;
         }
-        weekElmnts[day].removeAttribute('disabled');
     } else {
-        for (const hour of blockElmnts[day]) {
-            hour.setAttribute('disabled', true);
+        for (let i = 0; i < NUM_HOURS; i++) {
+            state[day][i] = false;
         }
-        weekElmnts[day].setAttribute('disabled', true);
+    }
+    syncDayHour();
+}
+
+const toggleHour = (hour) => {
+    let allEnabled = true;
+    for (let i = 0; i < NUM_DAYS; i++) {
+        if (!state[i][hour]) {
+            allEnabled = false;
+            break;
+        }
+    }
+    if (allEnabled) {
+        for (let i = 0; i < NUM_DAYS; i++) {
+            state[i][hour] = false;
+        }
+    } else {
+        for (let i = 0; i < NUM_DAYS; i++) {
+            state[i][hour] = true;
+        }
+    }
+    syncDayHour();
+}
+
+const toggleAll = () => {
+    if (state.some((day) => 
+        day.some((hr) => !hr)
+    )) {
+        for (let day = 0; day < NUM_DAYS; day++) {
+            for (let hr = 0; hr < NUM_HOURS; hr++) {
+                state[day][hr] = true;
+            }
+        }
+    } else {
+        for (let day = 0; day < NUM_DAYS; day++) {
+            for (let hr = 0; hr < NUM_HOURS; hr++) {
+                state[day][hr] = false;
+            }
+        }
+    }
+    syncDayHour();
+}
+
+const setDisplay = (elmnt, val) => {
+    if (val) {
+        elmnt.style['background-color'] = 'rgb(0, 150, 0)';
+    } else {
+        elmnt.style['background-color'] = 'rgba(0, 0, 0, 0)';
+    }
+}
+
+const syncDayHour = () => {
+    //block elements
+    for (let day = 0; day < NUM_DAYS; day++) {
+        for (let hr = 0; hr < NUM_HOURS; hr++) {
+            if (state[day][hr]) {
+                setDisplay(blockElmnts[day][hr], true);
+            } else {
+                setDisplay(blockElmnts[day][hr], false);
+            }
+        }
+    }
+
+    //day elements
+    for (let day = 0; day < NUM_DAYS; day++) {
+        if (state[day].some((hr) => !hr)) {
+            setDisplay(weekElmnts[day], false);
+        } else {
+            setDisplay(weekElmnts[day], true);
+        }
+    }
+
+    //hour elements
+    for (let hr = 0; hr < NUM_HOURS; hr++) {
+        let allEnabled = true;
+        for (let i = 0; i < NUM_DAYS; i++) {
+            if (!state[i][hr]) {
+                allEnabled = false;
+                break;
+            }
+        }
+        if (allEnabled) {
+            setDisplay(hourElmnts[hr], true);
+        } else {
+            setDisplay(hourElmnts[hr], false);
+        }
+    }
+
+    if (state.some((day) => 
+        day.some((hr) => !hr)
+    )) {
+        setDisplay(pad, false);
+    } else {
+        setDisplay(pad, true);
     }
 }
 
 //smth like vue is probably better but whatever
+//elements
 let blockElmnts = []
 let weekElmnts = []
+let hourElmnts = []
 let hours = document.createElement('div');
 hours.setAttribute('class', 'day');
 document.getElementById('schedule').appendChild(hours);
 let pad = document.createElement('div');
 pad.setAttribute('class', 'daydesc');
-pad.setAttribute('disabled', true);
+pad.setAttribute('onclick', `toggleAll()`);
 hours.appendChild(pad);
-for (let hr = 0; hr < 24; hr++) {
+for (let hr = 0; hr < NUM_HOURS; hr++) {
     let hourdesc = document.createElement('div');
-    hourdesc.setAttribute('class', 'hourdesc');
+    hourdesc.setAttribute('class', 'hour');
+    hourdesc.setAttribute('onclick', `toggleHour(${hr})`);
     hourdesc.innerHTML = hr.toString();
     hours.appendChild(hourdesc);
+    hourElmnts.push(hourdesc);
 }
-for (let day = 0; day < 7; day++) {
+for (let day = 0; day < NUM_DAYS; day++) {
     let today = document.createElement('div');
     today.setAttribute('class', 'day');
     document.getElementById('schedule').appendChild(today);
@@ -190,12 +279,22 @@ for (let day = 0; day < 7; day++) {
     daydesc.innerHTML = weekdayMap[day];
     today.appendChild(daydesc);
     weekElmnts.push(daydesc);
-    for (let hr = 0; hr < 24; hr++) {
+    for (let hr = 0; hr < NUM_HOURS; hr++) {
         let hour = document.createElement('div');
         hour.setAttribute('class', 'hour');
-        hour.setAttribute('onclick', `toggleHour(${day}, ${hr})`);
+        hour.setAttribute('onclick', `toggleDayHour(${day}, ${hr})`);
         today.appendChild(hour);
         blockElmnts[day].push(hour);
+    }
+}
+
+//actual boolean states
+//true = enabled
+let state = [];
+for (let day = 0; day < NUM_DAYS; day++) {
+    state.push([]);
+    for (let hour = 0; hour < NUM_HOURS; hour++) {
+        state[day].push(true);
     }
 }
 // const blobToBase64 = blob => {
