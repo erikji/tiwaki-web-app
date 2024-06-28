@@ -128,15 +128,15 @@
     </div>
     <div class="row">
         <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
-        <button onclick="">Get Camera Output (not implemented)</button>
+        <button onclick="getCameraImage()">Get Camera Output (not implemented)</button>
         <div>OR</div>
         <input type="file" id="imageupload" accept="image/*" disabled>
     </div>
     <div class="row">
         <button onclick="toggleHide(document.getElementById('userDrawing'))">Toggle Drawing</button>
-        <button onclick="clearDrawings()">Clear All Polygons</button>
+        <button onclick="clearDrawing()">Clear Drawing</button>
         <button onclick="undoPolygon()">Undo Last Polygon</button>
-        <button onclick="">Save Drawing (not implemented)</button>
+        <button onclick="saveDrawing()">Save Drawing (not implemented)</button>
     </div>
     <div class="centered" style="position: relative">
             <canvas id="img" height="640" width="640" style="z-index: 0"></canvas>

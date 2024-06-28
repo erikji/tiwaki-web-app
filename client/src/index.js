@@ -133,6 +133,9 @@ const loadONNX = async () => {
             document.getElementById('imageupload').disabled = false;
         }
     }
+    const getCameraImage = async () => {
+        const img = fetch();
+    }
 }
 
 loadONNX();
@@ -344,7 +347,7 @@ polygonSVG.addEventListener('click', (event) => {
     lastY = y;
 });
 
-const clearDrawings = () => {
+const clearDrawing = () => {
     polygonSVG.innerHTML = '';
 }
 
@@ -357,8 +360,8 @@ const undoPolygon = () => {
     }
 }
 
-const savePolygon = () => {
-    
+const saveDrawing = () => {
+
 }
 
 // const blobToBase64 = blob => {
