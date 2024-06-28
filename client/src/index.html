@@ -15,6 +15,7 @@
             background-color: black;
             color: white;
             text-align: center;
+            font-size: 1.5vw;
         }
 
         .row {
@@ -37,11 +38,7 @@
         }
 
         input {
-            border: 4px solid white;
             margin: 8px;
-            font-family: inherit;
-            background-color: transparent;
-            color: inherit;
             font-size: 1.5vw;
         }
 
@@ -52,7 +49,6 @@
         button {
             border: 4px solid white;
             margin: 8px;
-            font-family: inherit;
             background-color: transparent;
             color: inherit;
             font-size: 1.5vw;
@@ -69,7 +65,7 @@
 
         canvas {
             position: absolute;
-            width: 30vw;
+            width: 40vw;
             left: 0; 
             right: 0; 
             top: 0;
@@ -78,11 +74,27 @@
             border: 1px solid white;
         }
 
+        #userDrawing {
+            position: absolute;
+            width: 40vw;
+            height: 40vw;
+            left: 0; 
+            right: 0; 
+            top: 0;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding: 0;
+            border: 1px solid white;
+        }
+
         #schedule {
             display: flex;
             flex-direction: column;
             border: 1px solid white;
             width: min-content;
+            user-select: none;
         }
 
         .day {
@@ -115,18 +127,23 @@
         <div id="schedule"></div>
     </div>
     <div class="row">
+        <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
+        <button onclick="">Get Camera Output (not implemented)</button>
+        <div>OR</div>
         <input type="file" id="imageupload" accept="image/*" disabled>
     </div>
     <div class="row">
-        <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
+        <button onclick="toggleHide(document.getElementById('userDrawing'))">Toggle Drawing</button>
+        <button onclick="clearDrawings()">Clear All Polygons</button>
+        <button onclick="undoPolygon()">Undo Last Polygon</button>
+        <button onclick="">Save Drawing (not implemented)</button>
     </div>
     <div class="centered" style="position: relative">
             <canvas id="img" height="640" width="640" style="z-index: 0"></canvas>
             <canvas id="label" height="640" width="640" style="z-index: 1"></canvas>
-            <canvas id="userDrawing" height="640" width="640" style="z-index: 2"></canvas>
+            <svg id="userDrawing" style="z-index: 2" viewBox="0 0 640 640" width="640" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.18.0/ort.min.js"></script>
-    <script src="https://gojs.net/latest/extensions/PolygonDrawingTool.js"></script>
     <script src="client/src/index.js"></script>
 </body>
 

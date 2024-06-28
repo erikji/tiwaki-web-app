@@ -25,6 +25,7 @@ const weekdayMap = {
 const NUM_HOURS = 24;
 const NUM_DAYS = 7;
 
+//load and run YOLO
 const iou = (one, two) => {
     const bb1 = [one[0] - one[2] / 2, one[1] - one[3] / 2, one[0] + one[2] / 2, one[1] + one[3] / 2];
     const bb2 = [two[0] - two[2] / 2, two[1] - two[3] / 2, two[0] + two[2] / 2, two[1] + two[3] / 2];
@@ -58,7 +59,7 @@ const detect = async (sess, float32) => {
                     output.cpuData[i + 1 * (output.cpuData.length / (NUM_CLASSES + 4))],
                     output.cpuData[i + 2 * (output.cpuData.length / (NUM_CLASSES + 4))],
                     output.cpuData[i + 3 * (output.cpuData.length / (NUM_CLASSES + 4))],
-                    classMap[j - 4]
+                    j - 4
                 ];
                 const newDetected = [];
                 let includeNew = true;
@@ -127,7 +128,7 @@ const loadONNX = async () => {
             for (const i of detected) {
                 labelCtx.font = `${i[3]/5}px monospace`;
                 labelCtx.lineWidth = i[3]/100;
-                labelCtx.strokeText(i[5], i[1], i[2]);
+                labelCtx.strokeText(classMap[i[5]], i[1], i[2]);
             }
             document.getElementById('imageupload').disabled = false;
         }
@@ -136,6 +137,7 @@ const loadONNX = async () => {
 
 loadONNX();
 
+//schedule editor
 const toggleDayHour = (day, hour) => {
     state[day][hour] = !state[day][hour];
     syncDayHour();
@@ -257,12 +259,18 @@ hours.setAttribute('class', 'day');
 document.getElementById('schedule').appendChild(hours);
 let pad = document.createElement('div');
 pad.setAttribute('class', 'daydesc');
-pad.setAttribute('onclick', `toggleAll()`);
+pad.addEventListener('mousedown', toggleAll);
+pad.addEventListener('mouseover', (event) => {
+    if (event.buttons == 1) toggleAll();
+})
 hours.appendChild(pad);
 for (let hr = 0; hr < NUM_HOURS; hr++) {
     let hourdesc = document.createElement('div');
     hourdesc.setAttribute('class', 'hour');
-    hourdesc.setAttribute('onclick', `toggleHour(${hr})`);
+    hourdesc.addEventListener('mousedown', () => {toggleHour(hr)});
+    hourdesc.addEventListener('mouseover', (event) => {
+        if (event.buttons == 1) toggleHour(hr);
+    })
     hourdesc.innerHTML = hr.toString();
     hours.appendChild(hourdesc);
     hourElmnts.push(hourdesc);
@@ -275,14 +283,20 @@ for (let day = 0; day < NUM_DAYS; day++) {
 
     let daydesc = document.createElement('div');
     daydesc.setAttribute('class', 'daydesc');
-    daydesc.setAttribute('onclick', `toggleDay(${day})`);
+    daydesc.addEventListener('mousedown', () => {toggleDay(day)});
+    daydesc.addEventListener('mouseover', (event) => {
+        if (event.buttons == 1) toggleDay(day);
+    })
     daydesc.innerHTML = weekdayMap[day];
     today.appendChild(daydesc);
     weekElmnts.push(daydesc);
     for (let hr = 0; hr < NUM_HOURS; hr++) {
         let hour = document.createElement('div');
         hour.setAttribute('class', 'hour');
-        hour.setAttribute('onclick', `toggleDayHour(${day}, ${hr})`);
+        hour.addEventListener('mousedown', () => {toggleDayHour(day, hr)});
+        hour.addEventListener('mouseover', (event) => {
+            if (event.buttons == 1) toggleDayHour(day, hr);
+        })
         today.appendChild(hour);
         blockElmnts[day].push(hour);
     }
@@ -297,6 +311,56 @@ for (let day = 0; day < NUM_DAYS; day++) {
         state[day].push(true);
     }
 }
+
+//polygon editor
+const polygonSVG = document.getElementById('userDrawing');
+let currentlyDrawing = null;
+let lastX = -100;
+let lastY = -100;
+polygonSVG.addEventListener('click', (event) => {
+    const rect = polygonSVG.getBoundingClientRect();
+    const x = event.offsetX / rect.width * 640;
+    const y = event.offsetY / rect.height * 640;
+    if (currentlyDrawing == null && lastX != x && lastY != y) {
+        currentlyDrawing = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        currentlyDrawing.setAttribute('points', `${x},${y}`);
+        currentlyDrawing.setAttribute('stroke', 'red');
+        currentlyDrawing.setAttribute('stroke-width', '3px');
+        currentlyDrawing.setAttribute('fill', 'rgba(255, 0, 0, 0.2)');
+        polygonSVG.appendChild(currentlyDrawing);
+    } else if (lastX == x && lastY == y) {
+        //double click
+        let completedPolygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        for (const i of currentlyDrawing.attributes) {
+            completedPolygon.setAttribute(i.name, i.value);
+        }
+        polygonSVG.appendChild(completedPolygon);
+        polygonSVG.removeChild(currentlyDrawing);
+        currentlyDrawing = null;
+    } else {
+        currentlyDrawing.setAttribute('points', currentlyDrawing.getAttribute('points') + ` ${x},${y}`);
+    }
+    lastX = x;
+    lastY = y;
+});
+
+const clearDrawings = () => {
+    polygonSVG.innerHTML = '';
+}
+
+const undoPolygon = () => {
+    if (polygonSVG.children.length > 0) {
+        polygonSVG.removeChild(polygonSVG.lastChild);
+        lastX = -100;
+        lastY = -100;
+        currentlyDrawing = null;
+    }
+}
+
+const savePolygon = () => {
+    
+}
+
 // const blobToBase64 = blob => {
 //     const reader = new FileReader();
 //     reader.readAsDataURL(blob);
