@@ -138,12 +138,13 @@
         <button onclick="undoPolygon()">Undo Last Polygon</button>
         <button onclick="saveDrawing()">Save Drawing (not implemented)</button>
     </div>
-    <div class="centered" style="position: relative">
-            <canvas id="img" height="640" width="640" style="z-index: 0"></canvas>
-            <canvas id="label" height="640" width="640" style="z-index: 1"></canvas>
+    <div class="centered" style="position: relative" id="yolo">
+            <canvas id="img" width="640" height="640" style="z-index: 0"></canvas>
+            <canvas id="label" width="640" height="640" style="z-index: 1"></canvas>
             <svg id="userDrawing" style="z-index: 2" viewBox="0 0 640 640" width="640" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.18.0/ort.min.js"></script>
+    <script src="client/src/flatten.js"></script>
     <script src="client/src/index.js"></script>
 </body>
 

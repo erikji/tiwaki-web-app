@@ -13,6 +13,7 @@
         "ffmpeg": "^0.0.4",
         "http": "^0.0.1-security",
         "https": "^1.0.0",
+        "node-rtsp-stream": "^0.0.9",
         "typescript": "^5.4.5",
         "uuid": "^10.0.0",
         "youtube-screenshot": "^1.0.2"

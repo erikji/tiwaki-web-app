@@ -1,2 +1,4 @@
 */node_modules
 server/config
+*/__pycache__
+server/build

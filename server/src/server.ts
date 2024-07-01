@@ -6,7 +6,7 @@ import { v4 as uuidV4 } from 'uuid';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import { configDotenv } from 'dotenv';
-import takeScreenshot from 'youtube-screenshot';
+import stream from 'node-rtsp-stream';
 configDotenv({ path: path.resolve(__dirname, '../config/.env') });
 
 //setup server
@@ -43,24 +43,10 @@ app.post('/login', bodyParser.urlencoded({ extended: false }), (req, res) => {
         res.cookie('token', token, { expires: new Date(Date.now() + 3600000) });
         sessionTokens.set(token, {username: req.body.username, timeout: Date.now() + 3600000});
         res.redirect('/');
+        console.log(`new login from ${req.body.username}`);
     } else {
         res.redirect(403, '/login');
     }
-});
-//get current frame from youtube
-app.get('/frame/youtube/:id/:timestamp', async (req, res) => {
-    if (typeof req.params.id !== 'string' || typeof req.params.timestamp !== 'string') {
-        return;
-    }
-    try {
-        console.log(`https://www.youtube.com/watch?v=${req.params.id}`, parseInt(req.params.timestamp), `./temp_screenshot_${req.params.id}`, 'temp.png');
-        await takeScreenshot(`https://www.youtube.com/watch?v=${req.params.id}`, parseInt(req.params.timestamp), `./temp_screenshot_${req.params.id}`, 'temp.png');
-    } catch (e) {
-        console.error(e);
-        res.sendStatus(400);
-        return;
-    }
-    res.sendFile(path.resolve(__dirname, `../temp_screenshot_${req.params.id}/temp.png`));
 });
 //get current frame from webcam
 app.get('/frame/webcame/:id', async (req, res) => {
@@ -78,8 +64,8 @@ app.get('/client/*', (req, res) => {
     res.sendFile(path.join(__dirname, '../..', req.path));
 })
 
-server.listen(process.env.PORT);
-console.log(`listening on port ${process.env.PORT}`);
+server.listen(process.env.PORT ?? 6385);
+console.log(`listening on port ${process.env.PORT ?? 6385}`);
 
 setInterval(() => {
     sessionTokens.forEach((value, key, map) => {
