@@ -34,10 +34,11 @@ const iou = (one, two) => {
     return intersectionArea(poly1, poly2) / unionArea(poly1, poly2);
 }
 
-const detect = async (sess, float32) => {
-    //run the given model with the given Float32Array input, run non-max suppression
-    const inputTensor = new ort.Tensor('float32', float32, [1, 3, 640, 640]);
-    const output = (await sess.run({images: inputTensor})).output0;
+const detect = async (float32) => {
+    //run the model with fetch request with the given Float32Array input, run non-max suppression
+    const output = await (await fetch('model', {method: 'POST', body: float32, headers: { "Content-Type": "application/octet-stream"}})).json();
+    console.log(output);
+    output.cpuData = Object.values(output.cpuData);
     let detected = [];
     for (let i = 0; i < output.cpuData.length / (NUM_CLASSES + 4); i++) {
         for (let j = 4; j < NUM_CLASSES + 4; j++) {
@@ -108,7 +109,7 @@ const runModel = async (sess, url) => {
         float32[i] = transposed[i] / 255.0;
     }
 
-    boundingBoxes = await detect(sess, float32);
+    boundingBoxes = await detect(float32);
     drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
     document.getElementById('imageupload').disabled = false;
     document.getElementById('getcameraimage').disabled = false;
