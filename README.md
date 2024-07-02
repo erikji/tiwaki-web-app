@@ -8,7 +8,7 @@ To start the server, ensure you are in the `server` folder. Run
 ```bash
 npm i
 ```
-to install all required packages. Then, run the commands
+to install all required packages. You may also need to install [ffmpeg](https://www.ffmpeg.org/) if you don't have it already. Then, run the commands
 ```bash
 npm run compile
 ```
@@ -24,7 +24,9 @@ npm run compilerun
 ```
 to compile and start the server at the same time.
 
-The file `server/config/.env` specifies the `PORT` variable which changes the port the server is run on. It defaults to `6385`.
+The file `server/config/.env` specifies the following variables:
+* `PORT` which changes the port the server is run on. It defaults to `6385`.
+* `CAMERA_URL` which specifies the url of the attached IP camera's stream.
 
 ### Login
 

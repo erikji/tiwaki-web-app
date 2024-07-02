@@ -2,3 +2,5 @@
 server/config
 */__pycache__
 server/build
+*temp.jpg
+*.DS_STORE

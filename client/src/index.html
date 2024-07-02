@@ -87,6 +87,7 @@
             margin-bottom: 0;
             padding: 0;
             border: 1px solid white;
+            cursor: crosshair;
         }
 
         #schedule {
@@ -128,8 +129,8 @@
     </div>
     <div class="row">
         <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
-        <button onclick="getCameraImage()">Get Camera Output (not implemented)</button>
-        <div>OR</div>
+        <button id="getcameraimage">Get Camera Output</button>
+        <div>または</div>
         <input type="file" id="imageupload" accept="image/*" disabled>
     </div>
     <div class="row">

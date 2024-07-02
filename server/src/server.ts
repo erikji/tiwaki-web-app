@@ -6,8 +6,13 @@ import { v4 as uuidV4 } from 'uuid';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import { configDotenv } from 'dotenv';
-import stream from 'node-rtsp-stream';
+import ffmpeg from 'fluent-ffmpeg';
 configDotenv({ path: path.resolve(__dirname, '../config/.env') });
+
+if (typeof process.env.CAMERA_URL !== 'string') {
+    console.error('Missing environment variable CAMERA_URL');
+    process.exit(1);
+}
 
 //setup server
 const app = express();
@@ -48,12 +53,11 @@ app.post('/login', bodyParser.urlencoded({ extended: false }), (req, res) => {
         res.redirect(403, '/login');
     }
 });
-//get current frame from webcam
-app.get('/frame/webcame/:id', async (req, res) => {
-    if (typeof req.params.id !== 'string') {
-        return;
-    }
-    //not done
+//get current frame from ip camera
+app.get('/frame', async (req, res) => {
+    ffmpeg(process.env.CAMERA_URL).outputOptions(['-y', '-rtsp_transport tcp']).frames(1).saveToFile('temp.jpg').on('end', () => {
+        res.sendFile(path.join(__dirname, '../temp.jpg'));
+    });
 });
 //main page
 app.get('/', (req, res) => {

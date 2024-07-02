@@ -84,39 +84,46 @@ const toggleHide = (elmnt) => {
     return (elmnt.style.display = elmnt.style.display == 'none' ? 'block' : 'none') == 'block';
 }
 
+const runModel = async (sess, url) => {
+    //runs model on the given url, and draws on canvas with labels
+    document.getElementById('imageupload').disabled = true;
+    document.getElementById('getcameraimage').disabled = true;
+    //convert the uploaded image to Float32Array of the appropriate size
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    imageCtx.drawImage(img, 0, 0, 640, 640);
+    const imgData = imageCtx.getImageData(0, 0, 640, 640);
+    const red = [];
+    const green = [];
+    const blue = [];
+    for (let i = 0; i < imgData.data.length; i += 4) {
+        red.push(imgData.data[i]);
+        green.push(imgData.data[i+1]);
+        blue.push(imgData.data[i+2]);
+    }
+    const transposed = red.concat(green).concat(blue);
+    const float32 = new Float32Array(3 * 640 * 640);
+    for (let i = 0; i < transposed.length; i++) {
+        float32[i] = transposed[i] / 255.0;
+    }
+
+    boundingBoxes = await detect(sess, float32);
+    drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
+    document.getElementById('imageupload').disabled = false;
+    document.getElementById('getcameraimage').disabled = false;
+}
+
 const loadONNX = async () => {
     //load the ONNX model
     document.getElementById('imageupload').disabled = true;
     const sess = await ort.InferenceSession.create('client/public/model.onnx');
     document.getElementById('imageupload').disabled = false;
     document.getElementById('imageupload').onchange = async (e) => {
-        document.getElementById('imageupload').disabled = true;
-        //convert the uploaded image to Float32Array of the appropriate size
-        const img = new Image();
-        img.src = URL.createObjectURL(e.target.files[0]);
-        await img.decode();
-        imageCtx.drawImage(img, 0, 0, 640, 640);
-        const imgData = imageCtx.getImageData(0, 0, 640, 640);
-        const red = [];
-        const green = [];
-        const blue = [];
-        for (let i = 0; i < imgData.data.length; i += 4) {
-            red.push(imgData.data[i]);
-            green.push(imgData.data[i+1]);
-            blue.push(imgData.data[i+2]);
-        }
-        const transposed = red.concat(green).concat(blue);
-        const float32 = new Float32Array(3 * 640 * 640);
-        for (let i = 0; i < transposed.length; i++) {
-            float32[i] = transposed[i] / 255.0;
-        }
-
-        boundingBoxes = await detect(sess, float32);
-        drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
-        document.getElementById('imageupload').disabled = false;
+        runModel(sess, URL.createObjectURL(e.target.files[0]));
     }
-    const getCameraImage = async () => {
-        const img = fetch();
+    document.getElementById('getcameraimage').onclick = async () => {
+        runModel(sess, 'frame');
     }
 }
 
@@ -368,14 +375,14 @@ const saveDrawing = () => {
 //     }
 // };
 // document.getElementById('submit').onclick = async () => {
-//     const res = await fetch(`frame/youtube/${document.getElementById('youtubeurl').value}/${document.getElementById('timestamp').value}`);
-//     if (res.status >= 400) {
-//         document.getElementById('youtubeimgerr').innerHTML = res.status;
-//     }
-//     const reader = new FileReader();
-//     const blob = reader.readAsDataURL(await res.blob());
-//     reader.onload = () => {
-//         document.getElementById('youtubeimg').src = reader.result;
-//     }
+    // const res = await fetch(`frame/youtube/${document.getElementById('youtubeurl').value}/${document.getElementById('timestamp').value}`);
+    // if (res.status >= 400) {
+    //     document.getElementById('youtubeimgerr').innerHTML = res.status;
+    // }
+    // const reader = new FileReader();
+    // const blob = reader.readAsDataURL(await res.blob());
+    // reader.onload = () => {
+    //     document.getElementById('youtubeimg').src = reader.result;
+    // }
 //     // console.log(res);
 // }
