@@ -1,6 +1,5 @@
 //load and run YOLO
 let boundingBoxes = [];
-let hiddenBoundingBoxes = [];
 const imageCtx = document.getElementById('img').getContext('2d', {willReadFrequently: true});
 const labelCtx = document.getElementById('label').getContext('2d');
 
@@ -11,31 +10,28 @@ const labelColorMap = ['#0FF', '#F0F', '#FF0'];
 const NUM_CLASSES = classMap.length;
 const CONFIDENCE = 0.5; // min confidence to consider this bounding box
 
+const intersectionArea = (one, two) => {
+    //get intersection area from two Flatten.Polygon types
+    const intersect = Flatten.BooleanOperations.intersect(one, two);
+    intersect.recreateFaces();
+    return intersect.area();
+}
+
+const unionArea = (one, two) => {
+    //get union area from two Flatten.Polygon types
+    const union = Flatten.BooleanOperations.unify(one, two);
+    union.recreateFaces();
+    return union.area();
+}
+
 const iou = (one, two) => {
     //get iou of two bounding boxes in the format [x, y, w, h]
     const bb1 = [one[0] - one[2] / 2, one[1] - one[3] / 2, one[0] + one[2] / 2, one[1] + one[3] / 2];
     const bb2 = [two[0] - two[2] / 2, two[1] - two[3] / 2, two[0] + two[2] / 2, two[1] + two[3] / 2];
-    const x_left = Math.max(bb1[0], bb2[0]);
-    const y_top = Math.max(bb1[1], bb2[1]);
-    const x_right = Math.min(bb1[2], bb2[2]);
-    const y_bottom = Math.min(bb1[3], bb2[3]);
-    if (x_right < x_left || y_bottom < y_top) {
-        return 0
-    }
+    const poly1 = new Flatten.Polygon([[bb1[0], bb1[1]], [bb1[0], bb1[3]], [bb1[2], bb1[3]], [bb1[2], bb1[1]]]);
+    const poly2 = new Flatten.Polygon([[bb2[0], bb2[1]], [bb2[0], bb2[3]], [bb2[2], bb2[3]], [bb2[2], bb2[1]]]);
 
-    const intersection_area = (x_right - x_left) * (y_bottom - y_top);
-
-    const bb1_area = (bb1[2] - bb1[0]) * (bb1[3] - bb1[1]);
-    const bb2_area = (bb2[2] - bb2[0]) * (bb2[3] - bb2[1]);
-
-    return intersection_area / (bb1_area + bb2_area - intersection_area);
-}
-
-const intersectionArea = (one, two) => {
-    //get intersection area from polygons represented as arrays of [x, y]
-    const intersect = Flatten.BooleanOperations.intersect(new Flatten.Polygon(one), new Flatten.Polygon(two));
-    intersect.recreateFaces();
-    return intersect.area();
+    return intersectionArea(poly1, poly2) / unionArea(poly1, poly2);
 }
 
 const detect = async (sess, float32) => {
@@ -84,7 +80,8 @@ const detect = async (sess, float32) => {
 
 const toggleHide = (elmnt) => {
     //toggles whether an element has display none or display block
-    elmnt.style.display = elmnt.style.display == 'none' ? 'block' : 'none';
+    //returns bool whether the element is now shown
+    return (elmnt.style.display = elmnt.style.display == 'none' ? 'block' : 'none') == 'block';
 }
 
 const loadONNX = async () => {
@@ -115,7 +112,7 @@ const loadONNX = async () => {
         }
 
         boundingBoxes = await detect(sess, float32);
-        drawBoundingBoxes(boundingBoxes, labelCtx);
+        drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
         document.getElementById('imageupload').disabled = false;
     }
     const getCameraImage = async () => {
@@ -127,12 +124,12 @@ const drawBoundingBoxes = (boxes, ctx) => {
     //takes given bounding boxes in format [x, y, w, h] and draws them on ctx
     ctx.clearRect(0, 0, 640, 640);
     ctx.textAlign = 'center';
-    for (const i of boundingBoxes) {
+    for (const i of boxes) {
         ctx.strokeStyle = labelColorMap[i[5]] ?? 'cyan';
         ctx.lineWidth = i[3]/60;
         ctx.strokeRect(i[1] - i[3] / 2, i[2] - i[4] / 2, i[3], i[4]);
     }
-    for (const i of boundingBoxes) {
+    for (const i of boxes) {
         ctx.font = `${i[3]/5}px monospace`;
         ctx.lineWidth = i[3]/100;
         ctx.strokeText(classMap[i[5]], i[1], i[2]);
@@ -289,7 +286,7 @@ polygonSVG.addEventListener('click', (event) => {
     const rect = polygonSVG.getBoundingClientRect();
     const x = event.offsetX / rect.width * 640;
     const y = event.offsetY / rect.height * 640;
-    if (currentlyDrawing == null && lastX != x && lastY != y) {
+    if (currentlyDrawing == null) {
         //create new polyline
         currentlyDrawing = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
         currentlyDrawing.setAttribute('points', `${x},${y}`);
@@ -305,8 +302,6 @@ polygonSVG.addEventListener('click', (event) => {
         }
         polygonSVG.appendChild(completedPolygon);
         polygonSVG.removeChild(currentlyDrawing);
-        lastX = -100;
-        lastY = -100;
         currentlyDrawing = null;
     } else {
         //add to current polyline
@@ -314,41 +309,47 @@ polygonSVG.addEventListener('click', (event) => {
     }
     lastX = x;
     lastY = y;
+    drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
 });
+
+const toggleDrawing = () => {
+    drawBoundingBoxes(filterShownBoxes(boundingBoxes, toggleHide(polygonSVG) ? Array.from(polygonSVG.children) : []), labelCtx);
+}
 
 const clearDrawing = () => {
     polygonSVG.innerHTML = '';
-    lastX = -100;
-    lastY = -100;
     currentlyDrawing = null;
+    drawBoundingBoxes(boundingBoxes, labelCtx);
 }
 
 const undoPolygon = () => {
     if (polygonSVG.children.length > 0) {
         polygonSVG.removeChild(polygonSVG.lastChild);
-        lastX = -100;
-        lastY = -100;
         currentlyDrawing = null;
+        drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
     }
 }
 
-const updateHiddenLabels = () => {
-    //as we draw polygons, update which labels are shown and hidden based on out-of-interest areas
-    //not done
-    const allBoundingBoxes = hiddenBoundingBoxes.concat(boundingBoxes);
-    console.log(allBoundingBoxes)
-    for (const i of allBoundingBoxes) {
+const filterShownBoxes = (boxes, polygons) => {
+    //given boxes and out-of-interest labels as array of polygon HTML elements, return boxes that don't intersect with out-of-interest labels
+    let unhiddenBoundingBoxes = [];
+    for (const i of boxes) {
         const x1 = i[1] - i[3]/2;
         const x2 = i[1] + i[3]/2;
         const y1 = i[2] - i[4]/2;
         const y2 = i[2] + i[4]/2;
-        const rect = [[x1, y1], [x1, y2], [x2, y2], [x2, y1]];
-        console.log(rect);
-        for (const j of document.getElementById('userDrawing').children) {
-            const polygon = j.getAttribute('points').split(' ').map(pt => pt.split(',').map(num => parseFloat(num)));
-            console.log(polygon, intersectionArea(polygon, rect));
+        const rect = new Flatten.Polygon([[x1, y1], [x1, y2], [x2, y2], [x2, y1]]);
+        if (polygons.every(polygonElmnt => {
+            //completely unreadable
+            if (polygonElmnt.getAttribute('points').split(' ').length < 3) return true;
+            const polygon = new Flatten.Polygon(polygonElmnt.getAttribute('points').split(' ').map(pt => pt.split(',').map(num => parseFloat(num))));
+            return polygon.intersect(rect).length < 0;
+        })) {
+            unhiddenBoundingBoxes.push(i);
         }
     }
+
+    return unhiddenBoundingBoxes;
 }
 
 const saveDrawing = () => {
