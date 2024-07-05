@@ -35,7 +35,7 @@ const iou = (one, two) => {
 }
 
 const detect = async (float32) => {
-    //run the model with fetch request with the given Float32Array input, run non-max suppression
+    //run the model with fetch request with the given Float32Array input and run non-max suppression
     const output = await (await fetch('model', {method: 'POST', body: float32, headers: { "Content-Type": "application/octet-stream"}})).json();
     console.log(output);
     output.cpuData = Object.values(output.cpuData);
@@ -85,10 +85,13 @@ const toggleHide = (elmnt) => {
     return (elmnt.style.display = elmnt.style.display == 'none' ? 'block' : 'none') == 'block';
 }
 
-const runModel = async (sess, url) => {
+const runModel = async (url) => {
     //runs model on the given url, and draws on canvas with labels
+    //disable some stuff before processing
     document.getElementById('imageupload').disabled = true;
     document.getElementById('getcameraimage').disabled = true;
+    labelCtx.clearRect(0, 0, 640, 640);
+
     //convert the uploaded image to Float32Array of the appropriate size
     const img = new Image();
     img.src = url;
@@ -115,19 +118,6 @@ const runModel = async (sess, url) => {
     document.getElementById('getcameraimage').disabled = false;
 }
 
-const loadONNX = async () => {
-    //load the ONNX model
-    document.getElementById('imageupload').disabled = true;
-    const sess = await ort.InferenceSession.create('client/src/model.onnx');
-    document.getElementById('imageupload').disabled = false;
-    document.getElementById('imageupload').onchange = async (e) => {
-        runModel(sess, URL.createObjectURL(e.target.files[0]));
-    }
-    document.getElementById('getcameraimage').onclick = async () => {
-        runModel(sess, 'frame');
-    }
-}
-
 const drawBoundingBoxes = (boxes, ctx) => {
     //takes given bounding boxes in format [x, y, w, h] and draws them on ctx
     ctx.clearRect(0, 0, 640, 640);
@@ -145,7 +135,12 @@ const drawBoundingBoxes = (boxes, ctx) => {
     document.getElementById('imageupload').disabled = false;
 }
 
-loadONNX();
+document.getElementById('imageupload').onchange = async (e) => {
+    runModel(URL.createObjectURL(e.target.files[0]));
+}
+document.getElementById('getcameraimage').onclick = async () => {
+    runModel('frame');
+}
 
 //schedule editor
 const weekdayMap = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
