@@ -17,6 +17,7 @@ document.getElementById('logout').onclick = () => {
 //YOLO stuff
 let boundingBoxes = [];
 const imageCtx = document.getElementById('img').getContext('2d', {willReadFrequently: true});
+const settingsImageCtx = document.getElementById('settingsImg').getContext('2d', {willReadFrequently: true});
 const labelCtx = document.getElementById('label').getContext('2d');
 
 const classMap = ['Boar', 'Bear', 'Deer'];
@@ -101,18 +102,23 @@ const toggleHide = (elmnt) => {
     return (elmnt.style.display = elmnt.style.display == 'none' ? 'block' : 'none') == 'block';
 }
 
-const runModel = async (url) => {
-    //runs model on the given url, and draws on canvas with labels
-    //disable some stuff before processing
-    document.getElementById('imageupload').disabled = true;
-    document.getElementById('getcameraimage').disabled = true;
-    labelCtx.clearRect(0, 0, 640, 640);
-
-    //convert the uploaded image to Float32Array of the appropriate size
+const fetchAndDrawImage = async (url, ctx) => {
+    //fetch image at url and draw it on ctx
     const img = new Image();
     img.src = url;
     await img.decode();
-    imageCtx.drawImage(img, 0, 0, 640, 640);
+    ctx.drawImage(img, 0, 0, 640, 640);
+    return img;
+}
+
+const runModel = async (url) => {
+    //runs model on the given url, and draws on canvas with labels
+    //disable some stuff before processing
+    labelCtx.clearRect(0, 0, 640, 640);
+    imageCtx.clearRect(0, 0, 640, 640);
+
+    //convert the uploaded image to Float32Array of the appropriate size
+    await fetchAndDrawImage(url, imageCtx);
     const imgData = imageCtx.getImageData(0, 0, 640, 640);
     const red = [];
     const green = [];
@@ -130,8 +136,6 @@ const runModel = async (url) => {
 
     boundingBoxes = await detect(float32);
     drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
-    document.getElementById('imageupload').disabled = false;
-    document.getElementById('getcameraimage').disabled = false;
 }
 
 const drawBoundingBoxes = (boxes, ctx) => {
@@ -148,14 +152,18 @@ const drawBoundingBoxes = (boxes, ctx) => {
         ctx.lineWidth = i[3]/100;
         ctx.strokeText(classMap[i[5]], i[1], i[2]);
     }
-    document.getElementById('imageupload').disabled = false;
 }
 
 document.getElementById('imageupload').onchange = async (e) => {
+    document.getElementById('imageupload').disabled = true;
     runModel(URL.createObjectURL(e.target.files[0]));
+    document.getElementById('imageupload').disabled = false;
 }
+
 document.getElementById('getcameraimage').onclick = async () => {
-    runModel('frame');
+    document.getElementById('getcameraimage').disabled = true;
+    await fetchAndDrawImage('frame', settingsImageCtx);
+    document.getElementById('getcameraimage').disabled = false;
 }
 
 //schedule editor
@@ -372,7 +380,15 @@ const filterShownBoxes = (boxes, polygons) => {
 }
 
 const saveDrawing = () => {
+    //save to local storage
+    //todo: send to server at the same time
+    polygonSVG.innerHTML = polygonSVG.innerHTML.replace(/polyline/g, 'polygon');
+    window.localStorage.setItem('drawing', polygonSVG.innerHTML);
+}
 
+const loadDrawing = () => {
+    //rv back to previous revision
+    polygonSVG.innerHTML = window.localStorage.getItem('drawing') ?? '';
 }
 
 // const blobToBase64 = blob => {

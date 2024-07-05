@@ -62,7 +62,7 @@ app.post('/login', express.urlencoded({ extended: false }), (req, res) => {
 });
 //get current frame from ip camera
 app.get('/frame', async (req, res) => {
-    ffmpeg(process.env.CAMERA_URL).outputOptions(['-y', '-rtsp_transport tcp']).frames(1).saveToFile('temp.jpg').on('end', () => {
+    ffmpeg(process.env.CAMERA_URL).inputOptions(['-rtsp_transport tcp']).outputOptions(['-y']).frames(1).saveToFile('temp.jpg').on('end', () => {
         res.sendFile(path.join(__dirname, '../temp.jpg'));
     });
 });
@@ -70,7 +70,7 @@ app.get('/frame', async (req, res) => {
 app.post('/model', express.raw({limit: '50mb'}), async (req, res) => {
     const start = Date.now();
     res.send((await sess.run({images: new ort.Tensor('float32', new Float32Array(req.body.buffer), [1, 3, 640, 640])})).output0);
-    console.log(Date.now() - start);
+    console.log(`ran model in ${Date.now() - start}`);
 });
 //main page
 app.get('/', (req, res) => {
@@ -92,6 +92,8 @@ setInterval(() => {
         }
     });
 }, 5000);
+
+// ffmpeg(process.env.CAMERA_URL).inputFPS(30).inputOptions(['-rtsp_transport tcp']).format('image2').saveToFile('temp.jpg').noAudio();
 
 /**Describe user session */
 interface UserSession {

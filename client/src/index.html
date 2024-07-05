@@ -67,6 +67,12 @@
         #logout {
             color: white;
             cursor: grab;
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            background-color: black;
+            border: 1px solid white;
+            font-size: 3vw;
         }
 
         .row {
@@ -177,9 +183,6 @@
 <body>
     <div class="scrollContainer">
         <div class="sidebar">
-            <div id="logout">
-                Logout
-            </div>
             <div class="scrollButton" id="viewLiveScroll" style="background-color: lightgray">
                 <div>
                     Video
@@ -195,28 +198,36 @@
             <div class="fullBlock" id="viewLive">
                 <div class="row">
                     <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
-                    <button id="getcameraimage">Get Camera Output</button>
+                    <button>Get Livestream (not implemented)</button>
                     <div>または</div>
                     <input type="file" id="imageupload" accept="image/*">
-                </div>
-                <div class="row">
-                    <button onclick="toggleDrawing()">Toggle Drawing</button>
-                    <button onclick="clearDrawing()">Clear Drawing</button>
-                    <button onclick="undoPolygon()">Undo Last Polygon</button>
-                    <button onclick="saveDrawing()">Save Drawing (not implemented)</button>
                 </div>
                 <div class="centered" style="position: relative" id="yolo">
                         <canvas id="img" width="640" height="640" style="z-index: 0"></canvas>
                         <canvas id="label" width="640" height="640" style="z-index: 1"></canvas>
-                        <svg id="userDrawing" style="z-index: 2" viewBox="0 0 640 640" width="640" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
                 </div>
             </div>
             <div class="fullBlock" id="settings">
                 <div class="centered">
                     <div id="schedule"></div>
                 </div>
+                <div class="row">
+                    <button id="getcameraimage">Get Camera Output</button>
+                    <button onclick="toggleDrawing()">Toggle Drawing</button>
+                    <button onclick="clearDrawing()">Clear Drawing</button>
+                    <button onclick="undoPolygon()">Undo Last Polygon</button>
+                    <button onclick="loadDrawing()">Load Drawing</button>
+                    <button onclick="saveDrawing()">Save Drawing</button>
+                </div>
+                <div class="centered" style="position: relative">
+                    <canvas id="settingsImg" width="640" height="640" style="z-index: 0"></canvas>
+                    <svg id="userDrawing" style="z-index: 1" viewBox="0 0 640 640" width="640" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
             </div>
         </div>
+    </div>
+    <div id="logout">
+        Logout
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.18.0/ort.webgpu.min.js"></script>
     <script src="client/src/flatten.js"></script>
