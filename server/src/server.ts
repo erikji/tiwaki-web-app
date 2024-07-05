@@ -29,14 +29,14 @@ function verify(username: string, password: string) {
 //setup onnx model
 let sess;
 const loadONNX = async () => {
-    sess = await ort.InferenceSession.create(path.join(__dirname, '../../client/public/model.onnx'), {executionProviders: ['cuda', 'cpu']});
+    sess = await ort.InferenceSession.create(path.join(__dirname, '../../client/src/model.onnx'), {executionProviders: ['cuda', 'cpu']});
 }
 loadONNX();
 
 //http requests
 //require verification for everything except login screen
 app.use('/*', (req, res, next) => {
-    if (req.baseUrl == '/login') next();
+    if (req.baseUrl == '/login' || req.baseUrl.startsWith('/client/public')) next();
     else if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.redirect('/login');
     else next();
 });
@@ -52,8 +52,8 @@ app.post('/login', express.urlencoded({ extended: false }), (req, res) => {
     //really bad verification system
     if (verify(req.body.username, req.body.password)) {
         const token = uuidV4();
-        res.cookie('token', token, { expires: new Date(Date.now() + 3600000) });
-        sessionTokens.set(token, {username: req.body.username, timeout: Date.now() + 3600000});
+        res.cookie('token', token, { expires: new Date(Date.now() + 86400000) });
+        sessionTokens.set(token, {username: req.body.username, timeout: Date.now() + 86400000});
         res.redirect('/');
         console.log(`new login from ${req.body.username}`);
     } else {

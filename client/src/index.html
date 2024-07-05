@@ -7,15 +7,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Main</title>
     <style>
-        html, body {
+        body {
             width: 100vw;
             height: 100vh;
             margin: 0px 0px;
-            font-family: sans-serif;
-            background-color: black;
-            color: white;
             text-align: center;
-            font-size: 1.5vw;
+            font-family: sans-serif;
+            background-image: radial-gradient(circle at 91.26302083333333% 88.78255208333333%, #6653E5 0%, 20%, rgba(102,83,229,0) 40%), radial-gradient(circle at 6.503906249999999% 88.037109375%, rgba(27,72,128,0.99) 0%, 25%, rgba(27,72,128,0) 50%), radial-gradient(circle at 3.5937499999999996% 22.373046875%, #BDE9FB 0%, 42%, rgba(189,233,251,0) 70%), radial-gradient(circle at 68.35611979166667% 17.96875%, #2DB6D4 0%, 42%, rgba(45,182,212,0) 70%), radial-gradient(circle at 48.9013671875% 49.521484375%, #F8FCFF 0%, 100%, rgba(248,252,255,0) 100%); /*need better image*/
+            background-color: white;
+            color: black;
+            overflow: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .scrollContainer {
+            display: flex;
+            flex-direction: row;
+            height: 100%;
+            width: auto;
+            scroll-behavior: smooth;
+        }
+
+        .fullBlock {
+            height: 100%;
+            width: 100%;
+        }
+
+        .sidebar {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            background-color: black;
+            row-gap: 5px;
+            padding-right: 5px;
+            font-size: 3vw;
+        }
+
+        .view {
+            height: 200%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scrollButton {
+            height: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: black;
+            background-color: white;
         }
 
         .row {
@@ -124,28 +169,47 @@
 </head>
 
 <body>
-    <div class="centered">
-        <div id="schedule"></div>
-    </div>
-    <div class="row">
-        <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
-        <button id="getcameraimage">Get Camera Output</button>
-        <div>または</div>
-        <input type="file" id="imageupload" accept="image/*" disabled>
-    </div>
-    <div class="row">
-        <button onclick="toggleDrawing()">Toggle Drawing</button>
-        <button onclick="clearDrawing()">Clear Drawing</button>
-        <button onclick="undoPolygon()">Undo Last Polygon</button>
-        <button onclick="saveDrawing()">Save Drawing (not implemented)</button>
-    </div>
-    <div class="centered" style="position: relative" id="yolo">
-            <canvas id="img" width="640" height="640" style="z-index: 0"></canvas>
-            <canvas id="label" width="640" height="640" style="z-index: 1"></canvas>
-            <svg id="userDrawing" style="z-index: 2" viewBox="0 0 640 640" width="640" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="scrollContainer">
+        <div class="sidebar">
+            <a class="scrollButton" href="#viewLive">
+                <div>
+                    viewLive
+                </div>
+            </a>
+            <a class="scrollButton" href="#settings">
+                <div>
+                    settings
+                </div>
+            </a>
+        </div>
+        <div class="view">
+            <div class="fullBlock" id="viewLive">
+                <div class="row">
+                    <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
+                    <button id="getcameraimage">Get Camera Output</button>
+                    <div>または</div>
+                    <input type="file" id="imageupload" accept="image/*" disabled>
+                </div>
+                <div class="row">
+                    <button onclick="toggleDrawing()">Toggle Drawing</button>
+                    <button onclick="clearDrawing()">Clear Drawing</button>
+                    <button onclick="undoPolygon()">Undo Last Polygon</button>
+                    <button onclick="saveDrawing()">Save Drawing (not implemented)</button>
+                </div>
+                <div class="centered" style="position: relative" id="yolo">
+                        <canvas id="img" width="640" height="640" style="z-index: 0"></canvas>
+                        <canvas id="label" width="640" height="640" style="z-index: 1"></canvas>
+                        <svg id="userDrawing" style="z-index: 2" viewBox="0 0 640 640" width="640" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+            </div>
+            <div class="fullBlock" id="settings">
+                <div class="centered">
+                    <div id="schedule"></div>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.18.0/ort.webgpu.min.js"></script>
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script> -->
     <script src="client/src/flatten.js"></script>
     <script src="client/src/index.js"></script>
 </body>

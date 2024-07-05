@@ -118,7 +118,7 @@ const runModel = async (sess, url) => {
 const loadONNX = async () => {
     //load the ONNX model
     document.getElementById('imageupload').disabled = true;
-    const sess = await ort.InferenceSession.create('client/public/model.onnx');
+    const sess = await ort.InferenceSession.create('client/src/model.onnx');
     document.getElementById('imageupload').disabled = false;
     document.getElementById('imageupload').onchange = async (e) => {
         runModel(sess, URL.createObjectURL(e.target.files[0]));
