@@ -1,9 +1,17 @@
-//change between the two tabs
+//navigation and misc
 document.getElementById('viewLiveScroll').onclick = () => {
     document.getElementById('view').style.transform = 'translateY(0)';
+    document.getElementById('viewLiveScroll').style.backgroundColor = 'lightgray';
+    document.getElementById('settingsScroll').style.backgroundColor = 'white';
 }
 document.getElementById('settingsScroll').onclick = () => {
     document.getElementById('view').style.transform = `translateY(-50%)`;
+    document.getElementById('viewLiveScroll').style.backgroundColor = 'white';
+    document.getElementById('settingsScroll').style.backgroundColor = 'lightgray';
+}
+document.getElementById('logout').onclick = () => {
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    location.reload();
 }
 
 //YOLO stuff
