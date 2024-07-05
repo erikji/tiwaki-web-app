@@ -62,10 +62,6 @@
             font-size: 1.5vw;
             border-radius: 8px;
         }
-
-        /* input:invalid {
-            border-color: rgb(255, 69, 100);
-        } */
     </style>
 </head>
 
@@ -78,7 +74,7 @@
         <form method="post" id="loginForm" class="centered" enctype="application/json">
             <input type="text" name="username" placeholder="Username" title="Username" maxlength="16" autocomplete="username" autocapitalize="off" pattern="[a-z0-9]*" required>
             <input type="password" name="password" placeholder="Password" title="Password" maxlength="1024" autocomplete="current-password" required>
-            <input type="submit" value="Log in">
+            <input type="submit" value="Log in" style="cursor:grab">
         </form>
     </div>
 </body>

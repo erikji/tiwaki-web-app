@@ -44,7 +44,7 @@
             font-size: 3vw;
         }
 
-        .view {
+        #view {
             height: 200%;
             width: 100%;
             display: flex;
@@ -61,6 +61,7 @@
             text-decoration: none;
             color: black;
             background-color: white;
+            cursor: grab;
         }
 
         .row {
@@ -171,18 +172,18 @@
 <body>
     <div class="scrollContainer">
         <div class="sidebar">
-            <a class="scrollButton" href="#viewLive">
+            <div class="scrollButton" id="viewLiveScroll">
                 <div>
                     viewLive
                 </div>
-            </a>
-            <a class="scrollButton" href="#settings">
+            </div>
+            <div class="scrollButton" id="settingsScroll">
                 <div>
                     settings
                 </div>
-            </a>
+            </div>
         </div>
-        <div class="view">
+        <div id="view">
             <div class="fullBlock" id="viewLive">
                 <div class="row">
                     <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>

@@ -1,4 +1,12 @@
-//load and run YOLO
+//change between the two tabs
+document.getElementById('viewLiveScroll').onclick = () => {
+    document.getElementById('view').style.transform = 'translateY(0)';
+}
+document.getElementById('settingsScroll').onclick = () => {
+    document.getElementById('view').style.transform = `translateY(-50%)`;
+}
+
+//YOLO stuff
 let boundingBoxes = [];
 const imageCtx = document.getElementById('img').getContext('2d', {willReadFrequently: true});
 const labelCtx = document.getElementById('label').getContext('2d');
