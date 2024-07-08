@@ -5,13 +5,9 @@ import cors from 'cors';
 import { v4 as uuidV4 } from 'uuid';
 import cookieParser from 'cookie-parser';
 import { configDotenv } from 'dotenv';
-import ffmpeg from 'fluent-ffmpeg';
 import * as ort from 'onnxruntime-node';
 import child_process from 'child_process';
 import WebSocket, { WebSocketServer } from 'ws';
-import fs from 'node:fs';
-import { ReadStream } from 'fs';
-import { clear } from 'console';
 configDotenv({ path: path.resolve(__dirname, '../config/.env') });
 
 if (typeof process.env.CAMERA_URL !== 'string') {
@@ -29,6 +25,19 @@ const sessionTokens = new Map<string, UserSession>();
 
 function verify(username: string, password: string) {
     return username == 'tiwaki' && password == 'tiwaki';
+}
+
+//settings
+let schedule = new Array<Array<boolean>>();
+for (let i = 0; i < 7; i++) {
+    schedule.push([]);
+    for (let j = 0; j < 24; j++) {
+        schedule[schedule.length - 1].push(true);
+    }
+}
+
+const isScheduleActive = () => {
+    return schedule[(new Date()).getDay()][(new Date()).getHours()];
 }
 
 //setup onnx model
@@ -110,7 +119,18 @@ app.get('/logout', (req, res) => {
     res.clearCookie('token');
     sessionTokens.delete(req.cookies.token);
     res.redirect('/login');
-})
+});
+//use multer
+// app.post('/polygon', , (req, res) => {
+//     if (req.body == undefined || typeof req)
+// });
+app.post('/schedule', express.json(), (req, res) => {
+    if (!Array.isArray(req.body) || req.body.length != 7 || req.body.some((arr) => !Array.isArray(arr) || arr.length != 24 || arr.some((hr) => typeof hr != 'boolean'))) {
+        res.sendStatus(400);
+        return;
+    }
+    schedule = req.body;
+});
 //get current frame from ip camera
 app.get('/frame/:uselessparam', async (req, res) => {
     waitingForOutput.add(res);

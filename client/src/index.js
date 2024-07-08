@@ -263,6 +263,10 @@ const syncDayHour = () => {
 
     //all element (pad)
     setDisplay(pad, state.every(day => day.every(hr => hr)));
+
+    //update on server
+    window.localStorage.setItem('schedule', JSON.stringify(state));
+    fetch('schedule', { method: 'POST', body: JSON.stringify(state), headers: { 'Content-Type': 'application/json'} });
 }
 
 //smth like vue is probably better but whatever
@@ -320,13 +324,16 @@ for (let day = 0; day < NUM_DAYS; day++) {
 
 //actual boolean states
 //true = enabled
-let state = [];
-for (let day = 0; day < NUM_DAYS; day++) {
-    state.push([]);
-    for (let hour = 0; hour < NUM_HOURS; hour++) {
-        state[day].push(true);
+let state = JSON.parse(window.localStorage.getItem('schedule')) ?? [];
+if (state.length == 0) {
+    for (let day = 0; day < NUM_DAYS; day++) {
+        state.push([]);
+        for (let hour = 0; hour < NUM_HOURS; hour++) {
+            state[day].push(true);
+        }
     }
 }
+syncDayHour();
 
 //polygon editor
 const polygonSVG = document.getElementById('userDrawing');
