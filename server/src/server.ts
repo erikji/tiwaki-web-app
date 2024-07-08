@@ -10,6 +10,8 @@ import * as ort from 'onnxruntime-node';
 import child_process from 'child_process';
 import WebSocket, { WebSocketServer } from 'ws';
 import fs from 'node:fs';
+import { ReadStream } from 'fs';
+import { clear } from 'console';
 configDotenv({ path: path.resolve(__dirname, '../config/.env') });
 
 if (typeof process.env.CAMERA_URL !== 'string') {
@@ -36,6 +38,18 @@ const loadONNX = async () => {
 }
 loadONNX();
 
+//setup websockets
+const wss = new WebSocketServer({
+    port: parseInt(process.env.WS_PORT ?? '6386'),
+});
+
+wss.on('connection', function connection(ws, req) {
+    if (typeof req.headers.cookie !== 'string' || req.headers.cookie.split('=')[0] !== 'token' || req.headers.cookie.split('=').length !== 2 || sessionTokens.get(req.headers.cookie.split('=')[1]) == null) {
+        ws.terminate();
+        return;
+    }
+});
+
 //setup rtsp stream
 const spawnOptions = [
     "-rtsp_transport", // enforce TCP to avoid dropping frames
@@ -53,23 +67,17 @@ const spawnOptions = [
 
 const stream = child_process.spawn('ffmpeg', spawnOptions, { detached: false });
 
-//setup websockets
-const wss = new WebSocketServer({
-    port: parseInt(process.env.WS_PORT ?? '6386'),
-});
-
-wss.on('connection', function connection(ws, req) {
-    if (typeof req.headers.cookie !== 'string' || req.headers.cookie.split('=')[0] !== 'token' || req.headers.cookie.split('=').length !== 2 || sessionTokens.get(req.headers.cookie.split('=')[1]) == null) {
-        ws.terminate();
-        return;
-    }
-});
+const waitingForOutput = new Set<any>();
 
 stream.stdout.on('data', (data) => {
     for (const client of wss.clients) {
         client.send(data);
     }
-})
+    for (const configRes of waitingForOutput) {
+        configRes.send(data);
+    }
+    waitingForOutput.clear();
+});
 
 //http requests
 //require verification for everything except login screen
@@ -104,9 +112,15 @@ app.get('/logout', (req, res) => {
     res.redirect('/login');
 })
 //get current frame from ip camera
-app.get('/frame', async (req, res) => {
-    ffmpeg(process.env.CAMERA_URL).inputOptions(['-rtsp_transport tcp']).outputOptions(['-y']).frames(1).saveToFile('temp.jpg').on('end', () => {
-        res.sendFile(path.join(__dirname, '../temp.jpg'));
+app.get('/frame/:uselessparam', async (req, res) => {
+    waitingForOutput.add(res);
+    return new Promise((resolve) => {
+        const interval = setInterval(() => {
+            if (!waitingForOutput.has(res)) {
+                clearInterval(interval);
+                resolve();
+            }
+        });
     });
 });
 //run model with this array

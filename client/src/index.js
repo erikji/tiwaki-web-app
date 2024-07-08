@@ -185,7 +185,8 @@ document.getElementById('imageupload').onchange = async (e) => {
 
 document.getElementById('getcameraimage').onclick = async () => {
     document.getElementById('getcameraimage').disabled = true;
-    await fetchAndDrawImage('frame', settingsImageCtx);
+    // make the browser think its a different resource https://stackoverflow.com/questions/45710295/new-image-src-same-url-coding-twice-but-the-browser-just-can-catch-one-reque
+    await fetchAndDrawImage('frame/' + Math.floor(Date.now() / 1000).toString(), settingsImageCtx);
     document.getElementById('getcameraimage').disabled = false;
 }
 
