@@ -9,12 +9,13 @@ document.getElementById('settingsScroll').onclick = () => {
     document.getElementById('viewLiveScroll').style.backgroundColor = 'white';
     document.getElementById('settingsScroll').style.backgroundColor = 'lightgray';
 }
-document.getElementById('logout').onclick = () => {
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+document.getElementById('logout').onclick = async () => {
+    await fetch('logout');
     location.reload();
 }
 
 //YOLO stuff
+let ws = null;
 let boundingBoxes = [];
 const imageCtx = document.getElementById('img').getContext('2d', {willReadFrequently: true});
 const settingsImageCtx = document.getElementById('settingsImg').getContext('2d', {willReadFrequently: true});
@@ -154,9 +155,31 @@ const drawBoundingBoxes = (boxes, ctx) => {
     }
 }
 
+const activateLiveStream = async () => {
+    ws = new WebSocket('ws://localhost:6386');
+    ws.addEventListener('message', async (event) => {
+        await fetchAndDrawImage(URL.createObjectURL(event.data), imageCtx);
+    });
+}
+
+const deactivateLiveStream = async () => {
+    if (ws != null) {
+        ws.close();
+        ws = null;
+    }
+}
+
+document.getElementById('livestream').onclick = () => {
+    if (ws == null) {
+        activateLiveStream();
+    } else {
+        deactivateLiveStream();
+    }
+}
 document.getElementById('imageupload').onchange = async (e) => {
     document.getElementById('imageupload').disabled = true;
-    runModel(URL.createObjectURL(e.target.files[0]));
+    deactivateLiveStream();
+    await runModel(URL.createObjectURL(e.target.files[0]));
     document.getElementById('imageupload').disabled = false;
 }
 
@@ -389,6 +412,7 @@ const saveDrawing = () => {
 const loadDrawing = () => {
     //rv back to previous revision
     polygonSVG.innerHTML = window.localStorage.getItem('drawing') ?? '';
+    currentlyDrawing = null;
 }
 
 // const blobToBase64 = blob => {
