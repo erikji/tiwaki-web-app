@@ -27,7 +27,7 @@
         }
 
         .fullBlock {
-            height: 100%;
+            height: 100vh;
             width: 100%;
         }
 
@@ -75,11 +75,11 @@
             font-size: 3vw;
         }
 
-        .row {
+        .column {
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: row;
+            flex-direction: column;
         }
 
         .centered {
@@ -136,18 +136,6 @@
         }
 
         #userDrawing {
-            position: absolute;
-            width: 40vw;
-            height: 40vw;
-            left: 0; 
-            right: 0; 
-            top: 0;
-            margin-left: auto;
-            margin-right: auto;
-            margin-top: 0;
-            margin-bottom: 0;
-            padding: 0;
-            border: 1px solid white;
             cursor: crosshair;
         }
 
@@ -200,30 +188,31 @@
         </div>
         <div id="view">
             <div class="fullBlock" id="viewLive">
-                <div class="row">
-                    <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
-                </div>
-                <div class="centered" style="position: relative" id="yolo">
+                <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
+                <div class="centered" style="position: relative;" id="yolo">
                         <canvas id="img" width="640" height="640" style="z-index: 0"></canvas>
                         <canvas id="label" width="640" height="640" style="z-index: 1"></canvas>
                 </div>
             </div>
             <div class="fullBlock" id="settings">
                 <div class="centered">
+                    Activation schedule
                     <div id="schedule"></div>
                 </div>
-                <div class="row">
-                    <button id="getcameraimage">Get Camera Output</button>
-                    <button onclick="toggleDrawing()">Toggle Drawing</button>
-                    <button onclick="clearDrawing()">Clear Drawing</button>
-                    <button onclick="undoPolygon()">Undo Last Polygon</button>
-                    <button onclick="loadDrawing()">Load Drawing</button>
-                    <button onclick="saveDrawing()">Save Drawing</button>
+                <div class="centered">
+                    <div class="column">
+                        <button id="getcameraimage">Get Camera Output</button>
+                        <button onclick="toggleDrawing()">Toggle Drawing</button>
+                        <button onclick="clearDrawing()">Clear Drawing</button>
+                        <button onclick="undoPolygon()">Undo Last Polygon</button>
+                        <button onclick="loadDrawing()">Load Drawing</button>
+                        <button onclick="saveDrawing()">Save Drawing</button>
+                    </div>
+                    <div class="centered" style="position: relative;">
+                        <canvas id="settingsImg" width="640" height="640" style="z-index: 0"></canvas>
+                        <svg id="userDrawing" style="z-index: 1" viewBox="0 0 640 640" width="640" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
+                    </div>
                 </div>
-                <div class="centered" style="position: relative">
-                    <canvas id="settingsImg" width="640" height="640" style="z-index: 0"></canvas>
-                    <svg id="userDrawing" style="z-index: 1" viewBox="0 0 640 640" width="640" height="640" xmlns="http://www.w3.org/2000/svg"></svg>
-            </div>
             </div>
         </div>
     </div>
