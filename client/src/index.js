@@ -52,22 +52,19 @@ const iou = (one, two) => {
     return intersectionArea(poly1, poly2) / unionArea(poly1, poly2);
 }
 
-const detect = async (float32) => {
-    //run the model with fetch request with the given Float32Array input and run non-max suppression
-    const output = await (await fetch('model', {method: 'POST', body: float32, headers: { "Content-Type": "application/octet-stream"}})).json();
-    console.log(output);
-    output.cpuData = Object.values(output.cpuData);
+const nms = (cpuData) => {
+    //non max suppression
     let detected = [];
-    for (let i = 0; i < output.cpuData.length / (NUM_CLASSES + 4); i++) {
+    for (let i = 0; i < cpuData.length / (NUM_CLASSES + 4); i++) {
         for (let j = 4; j < NUM_CLASSES + 4; j++) {
-            if (output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))] > CONFIDENCE) {
+            if (cpuData[i + j * (cpuData.length / (NUM_CLASSES + 4))] > CONFIDENCE) {
                 //format: [confidence, x, y, w, h, class]
                 const cur = [
-                    output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))],
-                    output.cpuData[i + 0 * (output.cpuData.length / (NUM_CLASSES + 4))],
-                    output.cpuData[i + 1 * (output.cpuData.length / (NUM_CLASSES + 4))],
-                    output.cpuData[i + 2 * (output.cpuData.length / (NUM_CLASSES + 4))],
-                    output.cpuData[i + 3 * (output.cpuData.length / (NUM_CLASSES + 4))],
+                    cpuData[i + j * (cpuData.length / (NUM_CLASSES + 4))],
+                    cpuData[i + 0 * (cpuData.length / (NUM_CLASSES + 4))],
+                    cpuData[i + 1 * (cpuData.length / (NUM_CLASSES + 4))],
+                    cpuData[i + 2 * (cpuData.length / (NUM_CLASSES + 4))],
+                    cpuData[i + 3 * (cpuData.length / (NUM_CLASSES + 4))],
                     j - 4
                 ];
 
@@ -97,6 +94,14 @@ const detect = async (float32) => {
     return detected;
 }
 
+const detect = async (float32) => {
+    //run the model with fetch request with the given Float32Array input and run non-max suppression
+    const output = await (await fetch('model', {method: 'POST', body: float32, headers: { "Content-Type": "application/octet-stream"}})).json();
+    console.log(output);
+    output.cpuData = Object.values(output.cpuData);
+    return nms(output.cpuData);
+}
+
 const toggleHide = (elmnt) => {
     //toggles whether an element has display none or display block
     //returns bool whether the element is now shown
@@ -110,33 +115,6 @@ const fetchAndDrawImage = async (url, ctx) => {
     await img.decode();
     ctx.drawImage(img, 0, 0, 640, 640);
     return img;
-}
-
-const runModel = async (url) => {
-    //runs model on the given url, and draws on canvas with labels
-    //disable some stuff before processing
-    labelCtx.clearRect(0, 0, 640, 640);
-    imageCtx.clearRect(0, 0, 640, 640);
-
-    //convert the uploaded image to Float32Array of the appropriate size
-    await fetchAndDrawImage(url, imageCtx);
-    const imgData = imageCtx.getImageData(0, 0, 640, 640);
-    const red = [];
-    const green = [];
-    const blue = [];
-    for (let i = 0; i < imgData.data.length; i += 4) {
-        red.push(imgData.data[i]);
-        green.push(imgData.data[i+1]);
-        blue.push(imgData.data[i+2]);
-    }
-    const transposed = red.concat(green).concat(blue);
-    const float32 = new Float32Array(3 * 640 * 640);
-    for (let i = 0; i < transposed.length; i++) {
-        float32[i] = transposed[i] / 255.0;
-    }
-
-    boundingBoxes = await detect(float32);
-    drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
 }
 
 const drawBoundingBoxes = (boxes, ctx) => {
@@ -158,7 +136,10 @@ const drawBoundingBoxes = (boxes, ctx) => {
 const activateLiveStream = async () => {
     ws = new WebSocket('ws://localhost:6386');
     ws.addEventListener('message', async (event) => {
-        await fetchAndDrawImage(URL.createObjectURL(event.data), imageCtx);
+        const data = JSON.parse(event.data);
+        console.log(Date.now());
+        await fetchAndDrawImage(URL.createObjectURL(new Blob([Uint8Array.from(data.image.data)])), imageCtx);
+        drawBoundingBoxes(nms(data.detection), labelCtx);
     });
 }
 
@@ -176,13 +157,6 @@ document.getElementById('livestream').onclick = () => {
         deactivateLiveStream();
     }
 }
-document.getElementById('imageupload').onchange = async (e) => {
-    document.getElementById('imageupload').disabled = true;
-    deactivateLiveStream();
-    await runModel(URL.createObjectURL(e.target.files[0]));
-    document.getElementById('imageupload').disabled = false;
-}
-
 document.getElementById('getcameraimage').onclick = async () => {
     document.getElementById('getcameraimage').disabled = true;
     // make the browser think its a different resource https://stackoverflow.com/questions/45710295/new-image-src-same-url-coding-twice-but-the-browser-just-can-catch-one-reque
@@ -367,82 +341,35 @@ polygonSVG.addEventListener('click', (event) => {
     }
     lastX = x;
     lastY = y;
-    drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
 });
 
 const toggleDrawing = () => {
-    drawBoundingBoxes(filterShownBoxes(boundingBoxes, toggleHide(polygonSVG) ? Array.from(polygonSVG.children) : []), labelCtx);
+    toggleHide('userDrawing');
 }
 
 const clearDrawing = () => {
     polygonSVG.innerHTML = '';
     currentlyDrawing = null;
-    drawBoundingBoxes(boundingBoxes, labelCtx);
 }
 
 const undoPolygon = () => {
     if (polygonSVG.children.length > 0) {
         polygonSVG.removeChild(polygonSVG.lastChild);
         currentlyDrawing = null;
-        drawBoundingBoxes(filterShownBoxes(boundingBoxes, Array.from(polygonSVG.children)), labelCtx);
     }
-}
-
-const filterShownBoxes = (boxes, polygons) => {
-    //given boxes and out-of-interest labels as array of polygon HTML elements, return boxes that don't intersect with out-of-interest labels
-    let unhiddenBoundingBoxes = [];
-    for (const i of boxes) {
-        const x1 = i[1] - i[3]/2;
-        const x2 = i[1] + i[3]/2;
-        const y1 = i[2] - i[4]/2;
-        const y2 = i[2] + i[4]/2;
-        const rect = new Flatten.Polygon([[x1, y1], [x1, y2], [x2, y2], [x2, y1]]);
-        if (polygons.every(polygonElmnt => {
-            //completely unreadable
-            if (polygonElmnt.getAttribute('points').split(' ').length < 3) return true;
-            const polygon = new Flatten.Polygon(polygonElmnt.getAttribute('points').split(' ').map(pt => pt.split(',').map(num => parseFloat(num))));
-            return polygon.intersect(rect).length < 0;
-        })) {
-            unhiddenBoundingBoxes.push(i);
-        }
-    }
-
-    return unhiddenBoundingBoxes;
 }
 
 const saveDrawing = () => {
     //save to local storage
-    //todo: send to server at the same time
     polygonSVG.innerHTML = polygonSVG.innerHTML.replace(/polyline/g, 'polygon');
     window.localStorage.setItem('drawing', polygonSVG.innerHTML);
+    const serverSVG = polygonSVG.outerHTML.replace(/stroke="red" stroke-width="3px" fill="rgba\(255, 0, 0, 0.2\)"/g, 'fill="#000"').replace(/id="userDrawing" style="z-index: 1" /g, '');
+    fetch('polygon', { method: 'POST', body: serverSVG, headers: { 'Content-Type': 'text/plain' } });
 }
 
 const loadDrawing = () => {
     //rv back to previous revision
     polygonSVG.innerHTML = window.localStorage.getItem('drawing') ?? '';
     currentlyDrawing = null;
+    saveDrawing();
 }
-
-// const blobToBase64 = blob => {
-//     const reader = new FileReader();
-//     reader.readAsDataURL(blob);
-//     reader.onload = () => {
-//         return new Promise(resolve => {
-//             reader.onloadend = () => {
-//                 resolve(reader.result);
-//             };
-//         });
-//     }
-// };
-// document.getElementById('submit').onclick = async () => {
-    // const res = await fetch(`frame/youtube/${document.getElementById('youtubeurl').value}/${document.getElementById('timestamp').value}`);
-    // if (res.status >= 400) {
-    //     document.getElementById('youtubeimgerr').innerHTML = res.status;
-    // }
-    // const reader = new FileReader();
-    // const blob = reader.readAsDataURL(await res.blob());
-    // reader.onload = () => {
-    //     document.getElementById('youtubeimg').src = reader.result;
-    // }
-//     // console.log(res);
-// }

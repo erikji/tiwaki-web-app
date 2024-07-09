@@ -8,6 +8,7 @@ import { configDotenv } from 'dotenv';
 import * as ort from 'onnxruntime-node';
 import child_process from 'child_process';
 import WebSocket, { WebSocketServer } from 'ws';
+import sharp from 'sharp';
 configDotenv({ path: path.resolve(__dirname, '../config/.env') });
 
 if (typeof process.env.CAMERA_URL !== 'string') {
@@ -40,12 +41,17 @@ const isScheduleActive = () => {
     return schedule[(new Date()).getDay()][(new Date()).getHours()];
 }
 
+let mask: Buffer | undefined = undefined;
+
 //setup onnx model
 let sess;
 const loadONNX = async () => {
     sess = await ort.InferenceSession.create(path.join(__dirname, '../../client/src/model.onnx'), {executionProviders: ['cuda', 'cpu']});
 }
 loadONNX();
+
+const NUM_CLASSES = 3;
+const CONFIDENCE = 0.1;
 
 //setup websockets
 const wss = new WebSocketServer({
@@ -61,14 +67,12 @@ wss.on('connection', function connection(ws, req) {
 
 //setup rtsp stream
 const spawnOptions = [
-    "-rtsp_transport", // enforce TCP to avoid dropping frames
-    "tcp",
     "-i", // input stream
     process.env.CAMERA_URL,
     '-f', // tell ffmpeg to output images
     'image2',
-    '-vf', // change image dimensions
-    'scale=640:640',
+    '-vf',// change image dimensions and fps
+    'scale=640:640,fps=10',
     '-update', // https://superuser.com/questions/1819949/what-is-the-update-option-in-ffmpeg
     '1',
     '-' // tell ffmpeg to send it to stdout
@@ -78,15 +82,56 @@ const stream = child_process.spawn('ffmpeg', spawnOptions, { detached: false });
 
 const waitingForOutput = new Set<any>();
 
-stream.stdout.on('data', (data) => {
-    for (const client of wss.clients) {
-        client.send(data);
+stream.stdout.on('data', async (data) => {
+    try {
+        if (mask != undefined) {
+            data = await sharp(data).composite([{ input: mask, blend: 'multiply' }]).toBuffer();
+        }
+
+        for (const configRes of waitingForOutput) {
+            configRes.send(data);
+        }
+        waitingForOutput.clear();
+
+        let filtered: any;
+        if (isScheduleActive()) {
+            const raw = sharp(data).raw();
+            const transposed = Buffer.concat([await raw.extractChannel(0).toBuffer(), await raw.extractChannel(1).toBuffer(), await raw.extractChannel(2).toBuffer()], 3 * 640 * 640);
+            const float32 = new Float32Array(3 * 640 * 640);
+            for (let i = 0; i < transposed.length; i++) {
+                float32[i] = transposed[i] / 255.0;
+            }
+            const output = (await sess.run({images: new ort.Tensor('float32', float32, [1, 3, 640, 640])})).output0;
+            filtered = [[],[],[],[],[],[],[]];
+            for (let i = 0; i < output.cpuData.length / (NUM_CLASSES + 4); i++) {
+                for (let j = 4; j < NUM_CLASSES + 4; j++) {
+                    if (output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))] > CONFIDENCE) {
+                        for (j = 0; j < NUM_CLASSES + 4; j++) {
+                            filtered[j].push(output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))]);
+                        }   
+                        break;
+                    }
+                }
+            }
+        }
+        for (const client of wss.clients) {
+            client.send(JSON.stringify({
+                image: data,
+                detection: (filtered ?? []).flat()
+            }));
+        }
+    } catch {
+        console.log('skipping frame, jpeg corrupted');
     }
-    for (const configRes of waitingForOutput) {
-        configRes.send(data);
-    }
-    waitingForOutput.clear();
 });
+
+var cleanExit = function() {
+    console.log('killing ffmpeg child process (if this fails, use `sudo killall ffmpeg`)');
+    stream.kill();
+    process.exit();
+}
+process.on('SIGINT', cleanExit); // catch ctrl-c
+process.on('SIGTERM', cleanExit); // catch kill
 
 //http requests
 //require verification for everything except login screen
@@ -120,19 +165,28 @@ app.get('/logout', (req, res) => {
     sessionTokens.delete(req.cookies.token);
     res.redirect('/login');
 });
-//use multer
-// app.post('/polygon', , (req, res) => {
-//     if (req.body == undefined || typeof req)
-// });
+app.post('/polygon', express.text(), async (req, res) => {
+    if (req.body == undefined) {
+        res.sendStatus(400);
+        return;
+    }
+    try {
+        mask = await sharp(Buffer.from(req.body)).toFormat('png').toBuffer();
+        res.sendStatus(200);
+    } catch {
+        res.sendStatus(400);
+    }
+})
 app.post('/schedule', express.json(), (req, res) => {
     if (!Array.isArray(req.body) || req.body.length != 7 || req.body.some((arr) => !Array.isArray(arr) || arr.length != 24 || arr.some((hr) => typeof hr != 'boolean'))) {
         res.sendStatus(400);
         return;
     }
     schedule = req.body;
+    res.sendStatus(200);
 });
 //get current frame from ip camera
-app.get('/frame/:uselessparam', async (req, res) => {
+app.get('/frame/:second', async (req, res) => {
     waitingForOutput.add(res);
     return new Promise((resolve) => {
         const interval = setInterval(() => {
@@ -140,14 +194,12 @@ app.get('/frame/:uselessparam', async (req, res) => {
                 clearInterval(interval);
                 resolve();
             }
-        });
+        }, 10);
     });
 });
 //run model with this array
 app.post('/model', express.raw({limit: '5mb'}), async (req, res) => {
-    const start = Date.now();
     res.send((await sess.run({images: new ort.Tensor('float32', new Float32Array(req.body.buffer), [1, 3, 640, 640])})).output0);
-    console.log(`ran model in ${Date.now() - start}`);
 });
 //main page
 app.get('/', (req, res) => {
