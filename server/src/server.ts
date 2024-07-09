@@ -83,15 +83,14 @@ const stream = child_process.spawn('ffmpeg', spawnOptions, { detached: false });
 const waitingForOutput = new Set<any>();
 
 stream.stdout.on('data', async (data) => {
+    for (const configRes of waitingForOutput) {
+        configRes.send(data);
+    }
+    waitingForOutput.clear();
     try {
         if (mask != undefined) {
             data = await sharp(data).composite([{ input: mask, blend: 'multiply' }]).toBuffer();
         }
-
-        for (const configRes of waitingForOutput) {
-            configRes.send(data);
-        }
-        waitingForOutput.clear();
 
         let filtered: any;
         if (isScheduleActive()) {
