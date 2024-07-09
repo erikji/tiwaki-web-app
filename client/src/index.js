@@ -13,6 +13,26 @@ document.getElementById('logout').onclick = async () => {
     await fetch('logout');
     location.reload();
 }
+document.getElementById('label').onclick = async () => {
+    if (document.fullscreenElement == null) {
+        await document.getElementById('yolo').requestFullscreen();
+    } else {
+        await document.exitFullscreen();
+    }
+}
+document.getElementById('yolo').onfullscreenchange = async () => {
+    if (document.fullscreenElement == null) {
+        for (const child of document.getElementById('yolo').children) {
+            child.style.height = '';
+            child.style.width = '';
+        }
+    } else {
+        for (const child of document.getElementById('yolo').children) {
+            child.style.height = '100%';
+            child.style.width = 'auto';
+        }
+    }
+}
 
 //YOLO stuff
 let ws = null;
@@ -133,30 +153,13 @@ const drawBoundingBoxes = (boxes, ctx) => {
     }
 }
 
-const activateLiveStream = async () => {
-    ws = new WebSocket('ws://localhost:6386');
-    ws.addEventListener('message', async (event) => {
-        const data = JSON.parse(event.data);
-        console.log(Date.now());
-        await fetchAndDrawImage(URL.createObjectURL(new Blob([Uint8Array.from(data.image.data)])), imageCtx);
-        drawBoundingBoxes(nms(data.detection), labelCtx);
-    });
-}
+ws = new WebSocket('ws://localhost:6386');
+ws.addEventListener('message', async (event) => {
+    const data = JSON.parse(event.data);
+    await fetchAndDrawImage(URL.createObjectURL(new Blob([Uint8Array.from(data.image.data)])), imageCtx);
+    drawBoundingBoxes(nms(data.detection), labelCtx);
+});
 
-const deactivateLiveStream = async () => {
-    if (ws != null) {
-        ws.close();
-        ws = null;
-    }
-}
-
-document.getElementById('livestream').onclick = () => {
-    if (ws == null) {
-        activateLiveStream();
-    } else {
-        deactivateLiveStream();
-    }
-}
 document.getElementById('getcameraimage').onclick = async () => {
     document.getElementById('getcameraimage').disabled = true;
     // make the browser think its a different resource https://stackoverflow.com/questions/45710295/new-image-src-same-url-coding-twice-but-the-browser-just-can-catch-one-reque

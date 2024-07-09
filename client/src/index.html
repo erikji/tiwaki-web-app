@@ -131,6 +131,10 @@
             border: 1px solid white;
         }
 
+        #label {
+            cursor: grab;
+        }
+
         #userDrawing {
             position: absolute;
             width: 40vw;
@@ -198,7 +202,6 @@
             <div class="fullBlock" id="viewLive">
                 <div class="row">
                     <button onclick="toggleHide(document.getElementById('label'))">Toggle YOLO Label</button>
-                    <button id="livestream">Get Livestream</button>
                 </div>
                 <div class="centered" style="position: relative" id="yolo">
                         <canvas id="img" width="640" height="640" style="z-index: 0"></canvas>
