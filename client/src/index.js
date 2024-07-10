@@ -48,28 +48,23 @@ const labelColorMap = ['#0FF', '#F0F', '#FF0'];
 const NUM_CLASSES = classMap.length;
 const CONFIDENCE = 0.5; // min confidence to consider this bounding box
 
-const intersectionArea = (one, two) => {
-    //get intersection area from two Flatten.Polygon types
-    const intersect = Flatten.BooleanOperations.intersect(one, two);
-    intersect.recreateFaces();
-    return intersect.area();
-}
-
-const unionArea = (one, two) => {
-    //get union area from two Flatten.Polygon types
-    const union = Flatten.BooleanOperations.unify(one, two);
-    union.recreateFaces();
-    return union.area();
-}
-
 const iou = (one, two) => {
-    //get iou of two bounding boxes in the format [x, y, w, h]
     const bb1 = [one[0] - one[2] / 2, one[1] - one[3] / 2, one[0] + one[2] / 2, one[1] + one[3] / 2];
     const bb2 = [two[0] - two[2] / 2, two[1] - two[3] / 2, two[0] + two[2] / 2, two[1] + two[3] / 2];
-    const poly1 = new Flatten.Polygon([[bb1[0], bb1[1]], [bb1[0], bb1[3]], [bb1[2], bb1[3]], [bb1[2], bb1[1]]]);
-    const poly2 = new Flatten.Polygon([[bb2[0], bb2[1]], [bb2[0], bb2[3]], [bb2[2], bb2[3]], [bb2[2], bb2[1]]]);
+    const x_left = Math.max(bb1[0], bb2[0]);
+    const y_top = Math.max(bb1[1], bb2[1]);
+    const x_right = Math.min(bb1[2], bb2[2]);
+    const y_bottom = Math.min(bb1[3], bb2[3]);
+    if (x_right < x_left || y_bottom < y_top) {
+        return 0
+    }
 
-    return intersectionArea(poly1, poly2) / unionArea(poly1, poly2);
+    const intersection_area = (x_right - x_left) * (y_bottom - y_top);
+
+    const bb1_area = (bb1[2] - bb1[0]) * (bb1[3] - bb1[1]);
+    const bb2_area = (bb2[2] - bb2[0]) * (bb2[3] - bb2[1]);
+
+    return intersection_area / (bb1_area + bb2_area - intersection_area);
 }
 
 const nms = (cpuData) => {
