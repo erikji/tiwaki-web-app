@@ -1,5 +1,4 @@
 import express from 'express';
-import http from 'http';
 import path from 'path';
 import { v4 as uuidV4 } from 'uuid';
 import cookieParser from 'cookie-parser';
@@ -34,8 +33,7 @@ app.get('/', (req, res) => {
 app.get('/login', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../../client/src/login.html'));
 });
-const server = http.createServer(app);
-server.listen(process.env.HTTP_PORT ?? 6385);
+app.listen(process.env.HTTP_PORT ?? 6385);
 console.log(`listening on port ${process.env.HTTP_PORT ?? 6385}`);
 
 //manage login and sessions

@@ -1,3 +1,5 @@
+import React from 'react';
+
 //navigation and misc
 document.getElementById('viewLiveScroll').onclick = () => {
     document.getElementById('view').style.transform = 'translateY(0)';
