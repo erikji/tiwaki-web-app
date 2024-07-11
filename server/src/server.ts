@@ -14,27 +14,27 @@ if (typeof process.env.CAMERA_URL !== 'string') {
     process.exit(1);
 }
 
-//setup server
+//setup server (spaghetti)
 const app = express();
-app.use(cookieParser());
-//require verification for everything except login screen and client/public
-app.use('/*', (req, res, next) => {
-    if (req.baseUrl == '/login' || req.baseUrl.startsWith('/public')) next();
-    else if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.redirect('/login');
-    else next();
-});
-app.use('/public', express.static(path.join(__dirname, '../../client/public')));
-app.use('/src', express.static(path.join(__dirname, '../../client/src')));
-//main page
-app.get('/', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../../client/src/index.html'));
-});
-//login
-app.get('/login', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../../client/src/login.html'));
-});
 app.listen(process.env.HTTP_PORT ?? 6385);
 console.log(`listening on port ${process.env.HTTP_PORT ?? 6385}`);
+app.use(cookieParser());
+const indexDir = path.resolve(__dirname, '../../client/dist/index.html');
+app.get(/^(^[^.\n]+\.?)+(.*(html){1})?$/, (req, res) => {
+    if (!req.accepts('html')) res.sendStatus(406);
+    else res.sendFile(indexDir);
+});
+app.get('/*', express.static(path.resolve(__dirname, '../../client/dist')));
+app.get('*', (req, res) => {
+    res.status(404);
+    if (req.accepts('html')) res.sendFile(indexDir);
+    else res.sendStatus(404);
+});
+app.post('/*', (req, res, next) => {
+    if (req.baseUrl == '/login') next();
+    if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.sendStatus(401);
+    else next();
+});
 
 //manage login and sessions
 const sessionTokens = new Map<string, number>();
@@ -58,7 +58,7 @@ app.post('/login', express.urlencoded({ extended: false }), (req, res) => {
         res.redirect(403, '/login');
     }
 });
-app.get('/logout', (req, res) => {
+app.post('/logout', (req, res) => {
     res.clearCookie('token');
     sessionTokens.delete(req.cookies.token);
     res.redirect('/login');
@@ -181,7 +181,7 @@ stream.stdout.on('data', async (data) => {
     }
 });
 //get current frame from ip camera
-app.get('/frame/:second', async (req, res) => {
+app.post('/frame/:second', async (req, res) => {
     waitingForOutput.add(res);
     return new Promise((resolve) => {
         const interval = setInterval(() => {

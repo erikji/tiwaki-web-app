@@ -2,26 +2,53 @@ import { useState } from "react";
 import DayHour from "./DayHour";
 import Row from "./Row";
 
-const weekdayMap = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const weekdayMap = ['月', '火', '水', '木', '金', '土', '日'];
 
 function Schedule({ numDays, numHours }: { numDays: number, numHours: number}) {
-    const initialState: Array<Array<boolean>> = [];
+    const state: Array<Array<boolean>> = [];
+    const setters: Array<Array<React.Dispatch<boolean>>> = [];
     for (let i = 0; i < numDays; i++) {
-        initialState.push([]);
+        state.push([]);
+        setters.push([]);
         for (let j = 0; j < numHours; j++) {
-            initialState[initialState.length - 1].push(true);
+            const [dayHour, setDayHour] = useState(true);
+            state[state.length - 1].push(dayHour);
+            setters[state.length - 1].push(setDayHour);
         }
     }
-    const [state, setState] = useState(initialState);
 
-    let hours = [];
+    let allRows = [];
+    let topRow = [<DayHour key={-1} enabled={state.every(day => day.every(hr => hr))} handleClick={() => {
+        let allEnabled = state.every(day => day.every(hr => hr));
+        for (const row of setters) {
+            for (const day of row) {
+                day(!allEnabled);
+            }
+        }
+    }}> </DayHour>];
     for (let i = 0; i < numHours; i++) {
-        hours.push(<DayHour enabled={state.every(day => day[i])} handleClick={() => {
+        topRow.push(<DayHour key={i} enabled={state.every(day => day[i])} handleClick={() => {
             let allEnabled = state.every(day => day[i]);
-            setState(state.map(day => {day[i] = !allEnabled; return day;}));
-        }}>i</DayHour>);
+            for (const row of setters) {
+                row[i](!allEnabled);
+            }
+        }}>{i+1}</DayHour>);
     }
-    // let tableContents = 
+    allRows.push(<Row key={-1}>{topRow}</Row>);
+    for (let day = 0; day < numDays; day++) {
+        let curRow = [<DayHour key={-1} enabled={state[day].every(hr => hr)} handleClick={() => {
+            let allEnabled = state[day].every(hr => hr);
+            for (const hr of setters[day]) {
+                hr(!allEnabled);
+            }
+        }}>{weekdayMap.length > day ? weekdayMap[day] : day+1}</DayHour>];
+        for (let hr = 0; hr < numHours; hr++) {
+            curRow.push(<DayHour key={hr} enabled={state[day][hr]} handleClick={() => {
+                setters[day][hr](!state[day][hr]);
+            }}> </DayHour>);
+        }
+        allRows.push(<Row key={day}>{curRow}</Row>);
+    }
 
 
     const style = {
@@ -29,9 +56,11 @@ function Schedule({ numDays, numHours }: { numDays: number, numHours: number}) {
         flexDirection: 'column' as const,
         border: '1px solid white',
         width: 'min-content',
-        userSelect: 'none' as const
+        userSelect: 'none' as const,
+        backgroundColor: 'black',
+        margin: 'auto'
     };
-    const table = <div style={style}></div>
+    return <div style={style}>{allRows}</div>;
 }
 
 export default Schedule;
