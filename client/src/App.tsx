@@ -1,6 +1,6 @@
 import SidebarContainer from './layout/SidebarContainer';
-import Preview from './pages/Preview';
-import Settings from './pages/Settings';
+import Preview from './preview/Preview';
+import Settings from './settings/Settings';
 
 function App() {
   return (

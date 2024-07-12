@@ -24,16 +24,15 @@ app.get(/^(^[^.\n]+\.?)+(.*(html){1})?$/, (req, res) => {
     if (!req.accepts('html')) res.sendStatus(406);
     else res.sendFile(indexDir);
 });
+app.get('/check', (req, res) => {
+    if (req.cookies == undefined || req.cookies.token == undefined) res.redirect('/login');
+    res.sendStatus(200);
+});
 app.get('/*', express.static(path.resolve(__dirname, '../../client/dist')));
 app.get('*', (req, res) => {
     res.status(404);
     if (req.accepts('html')) res.sendFile(indexDir);
     else res.sendStatus(404);
-});
-app.post('/*', (req, res, next) => {
-    if (req.baseUrl == '/login') next();
-    if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.sendStatus(401);
-    else next();
 });
 
 //manage login and sessions
@@ -81,12 +80,20 @@ for (let i = 0; i < 7; i++) {
     }
 }
 let mask: Buffer | undefined = undefined;
-app.post('/polygon', express.text(), async (req, res) => {
-    if (req.body == undefined) {
+app.post('/polygon', express.json(), async (req, res) => {
+    if (!Array.isArray(req.body)) {
         res.sendStatus(400);
         return;
     }
     try {
+        let svgString = `<svg>`;
+        for (const polygon of req.body) {
+            svgString += `<polyline fill="#000" points="`;
+            svgString += polygon.map(pt => `${pt.x},${pt.y}`).join(' ');
+            svgString += `"></polyline>`;
+        }
+        svgString += `</svg>`;
+        console.log(svgString);
         mask = await sharp(Buffer.from(req.body)).toFormat('png').toBuffer();
         res.sendStatus(200);
     } catch {
@@ -114,7 +121,7 @@ const CONFIDENCE = 0.1;
 
 //setup websockets
 const wss = new WebSocketServer({ port: parseInt(process.env.WS_PORT ?? '6386') }).on('connection', (ws, req) => {
-    if (req.headers.cookie!.split('=')[0] !== 'token' || req.headers.cookie!.split('=').length !== 2 || sessionTokens.get(req.headers.cookie!.split('=')[1]) == null) {
+    if (req.headers.cookie == null || req.headers.cookie!.split('=')[0] !== 'token' || req.headers.cookie!.split('=').length !== 2 || sessionTokens.get(req.headers.cookie!.split('=')[1]) == null) {
         ws.terminate();
     }
 });
@@ -203,3 +210,9 @@ var cleanExit = function() {
 }
 process.on('SIGINT', cleanExit); // catch ctrl-c
 process.on('SIGTERM', cleanExit); // catch kill
+
+app.post('/*', (req, res, next) => {
+    if (req.baseUrl == '/login') next();
+    if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.sendStatus(401);
+    else next();
+});

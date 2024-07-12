@@ -9,7 +9,10 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
-    errorElement: <Error />
+    errorElement: <Error />,
+    loader: async () => {
+      return await fetch('check');
+    }
   }, {
     path: 'login',
     element: <Login />

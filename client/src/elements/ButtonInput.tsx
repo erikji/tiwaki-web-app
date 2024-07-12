@@ -1,6 +1,6 @@
-function ButtonInput({ text, onClick }: { text: string, onClick: () => any }) {
+function ButtonInput({ disabled=false, text, onClick }: { disabled?: boolean, text: string, onClick: () => any }) {
     const style = {
-        border: '4px solid white',
+        border: disabled ? '4px solid gray' : '4px solid black',
         margin: '8px',
         backgroundColor: 'transparent',
         cursor: 'grab',

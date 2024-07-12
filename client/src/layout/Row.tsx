@@ -1,7 +1,8 @@
 function Row({ children }: { children: React.ReactNode }) {
     const style = {
         display: 'flex',
-        flexDirection: 'row' as const // https://github.com/cssinjs/jss/issues/1344
+        flexDirection: 'row' as const,
+        alignItems: 'center'
     };
     return (
         <div style={style}>{ children }</div>

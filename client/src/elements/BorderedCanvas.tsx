@@ -1,19 +1,20 @@
 import { useEffect, useRef } from 'react';
-import loading from '/loading.svg';
 
-function BorderedCanvas({ width, height, url=URL.createObjectURL(loading) }: { width: number, height: number, url?: string }) {
+function BorderedCanvas({ width, height, url='https://upload.wikimedia.org/wikipedia/commons/d/dd/Loading_spinner.svg', position='absolute', zIndex=0 }: { width: number, height: number, url?: string, position?: string, zIndex?: number }) {
     const style = {
-        position: 'absolute' as const,
+        position: position,
         left: '0',
         right: '0',
         top: '0',
         marginLeft: 'auto',
         marginRight: 'auto',
-        border: '1px solid white'
-    }
+        border: '1px solid white',
+        width: '30vw',
+        height: '30vw',
+        zIndex: zIndex
+    } as React.CSSProperties;
     const canvasElmnt = useRef<HTMLCanvasElement>(null);
     const fetchAndDrawImage = async (sourceURL: string, ctx: CanvasRenderingContext2D) => {
-        //fetch image at url and draw it on ctx
         const img = new Image();
         img.src = sourceURL;
         await img.decode();

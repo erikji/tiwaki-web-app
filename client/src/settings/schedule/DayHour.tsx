@@ -1,4 +1,4 @@
-function DayHour({ enabled, handleClick, children }: { enabled: boolean, handleClick: () => any, children: React.ReactNode | undefined }) {
+function DayHour({ enabled, handleClick, children }: { enabled: boolean, handleClick: () => any, children?: React.ReactNode}) {
     const style = {
         margin: '0px',
         padding: '0px',
