@@ -19,8 +19,9 @@ function PolygonEditor() {
     });
     const [hideSVG, setHideSVG] = useState(false);
 
-    const handleGetCameraImage = () => {
-        setCanvasURL('frame/' + Math.floor(Date.now()/1000).toString());
+    const handleGetCameraImage = async () => {
+        const imgBlob = await (await fetch('frame/' + Math.floor(Date.now()/1000).toString())).blob();
+        setCanvasURL(URL.createObjectURL(imgBlob));
     }
 
     const handleToggleDrawing = () => {

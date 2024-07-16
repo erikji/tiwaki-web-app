@@ -5,7 +5,7 @@ import PolygonEditor from "./polygon/PolygonEditor";
 function Settings() {
     return (
         <FullPage>
-            <Schedule numDays={8} numHours={24} />
+            <Schedule numDays={7} numHours={24} />
             <br/>
             <PolygonEditor />
         </FullPage>

@@ -7,6 +7,7 @@ import * as ort from 'onnxruntime-node';
 import child_process from 'child_process';
 import { WebSocketServer } from 'ws';
 import sharp from 'sharp';
+import fs from 'node:fs';
 configDotenv({ path: path.resolve(__dirname, '../config/.env') });
 
 if (typeof process.env.CAMERA_URL !== 'string') {
@@ -24,15 +25,20 @@ app.get(/^(^[^.\n]+\.?)+(.*(html){1})?$/, (req, res) => {
     if (!req.accepts('html')) res.sendStatus(406);
     else res.sendFile(indexDir);
 });
-app.get('/check', (req, res) => {
-    if (req.cookies == undefined || req.cookies.token == undefined) res.redirect('/login');
-    res.sendStatus(200);
+app.post('/check', (req, res) => {
+    if (req.cookies == undefined || req.cookies.token == undefined) res.json(false);
+    else res.json(sessionTokens.has(req.cookies.token));
 });
 app.get('/*', express.static(path.resolve(__dirname, '../../client/dist')));
 app.get('*', (req, res) => {
     res.status(404);
     if (req.accepts('html')) res.sendFile(indexDir);
     else res.sendStatus(404);
+});
+app.post('/*', (req, res, next) => {
+    if (req.originalUrl == '/login') next();
+    else if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.sendStatus(401);
+    else next();
 });
 
 //manage login and sessions
@@ -60,6 +66,7 @@ app.post('/login', express.urlencoded({ extended: false }), (req, res) => {
 app.post('/logout', (req, res) => {
     res.clearCookie('token');
     sessionTokens.delete(req.cookies.token);
+    console.log(`deleting ${req.cookies.token}`);
     res.redirect('/login');
 });
 setInterval(() => {
@@ -80,23 +87,39 @@ for (let i = 0; i < 7; i++) {
     }
 }
 let mask: Buffer | undefined = undefined;
+/** Describe 2D point */
+export interface Point {
+    /** X coord */
+    x: number
+    /** Y coord */
+    y: number
+}
+const isPoint = (object: any): boolean => {
+    return 'x' in object && 'y' in object && typeof object.x === 'number' && typeof object.y === 'number';
+}
 app.post('/polygon', express.json(), async (req, res) => {
-    if (!Array.isArray(req.body)) {
+    if (!Array.isArray(req.body) || req.body.some((arr) => !Array.isArray(arr) || !arr.every(isPoint))) {
         res.sendStatus(400);
         return;
     }
-    try {
-        let svgString = `<svg>`;
-        for (const polygon of req.body) {
-            svgString += `<polyline fill="#000" points="`;
-            svgString += polygon.map(pt => `${pt.x},${pt.y}`).join(' ');
-            svgString += `"></polyline>`;
-        }
-        svgString += `</svg>`;
-        console.log(svgString);
-        mask = await sharp(Buffer.from(req.body)).toFormat('png').toBuffer();
+    if (req.body.length == 0 || req.body.every((arr) => arr.length == 0)) {
+        mask = undefined;
         res.sendStatus(200);
-    } catch {
+        return;
+    }
+    let svgString = `<svg viewBox="0 0 640 640" width="640" height="640">`;
+    for (const polygon of req.body) {
+        svgString += `<polyline fill="#000" points="`;
+        svgString += polygon.map(pt => `${pt.x},${pt.y}`).join(' ');
+        svgString += `"></polyline>`;
+    }
+    svgString += `</svg>`;
+    try {
+        mask = await sharp(Buffer.from(svgString)).toFormat('png').toBuffer();
+        fs.writeFile('img/' + uuidV4() + '.png', mask, () => {});
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
         res.sendStatus(400);
     }
 })
@@ -156,8 +179,8 @@ stream.stdout.on('data', async (data) => {
             data = await sharp(data).composite([{ input: mask, blend: 'multiply' }]).toBuffer();
         }
 
-        let filtered: undefined | Array<Array<number>>;
         if (schedule[(new Date()).getDay()][(new Date()).getHours()]) {
+            let filtered: Array<Array<number>> = [[],[],[],[],[],[],[]];
             const raw = sharp(data).raw();
             const transposed = Buffer.concat([await raw.extractChannel(0).toBuffer(), await raw.extractChannel(1).toBuffer(), await raw.extractChannel(2).toBuffer()], 3 * 640 * 640);
             const float32 = new Float32Array(3 * 640 * 640);
@@ -165,7 +188,6 @@ stream.stdout.on('data', async (data) => {
                 float32[i] = transposed[i] / 255.0;
             }
             const output = (await sess.run({images: new ort.Tensor('float32', float32, [1, 3, 640, 640])})).output0;
-            filtered = [[],[],[],[],[],[],[]];
             for (let i = 0; i < output.cpuData.length / (NUM_CLASSES + 4); i++) {
                 for (let j = 4; j < NUM_CLASSES + 4; j++) {
                     if (output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))] > CONFIDENCE) {
@@ -176,16 +198,24 @@ stream.stdout.on('data', async (data) => {
                     }
                 }
             }
+            for (const client of wss.clients) {
+                client.send(JSON.stringify({
+                    image: data,
+                    detection: filtered.flat()
+                }));
+            }
+        } else {
+            for (const client of wss.clients) {
+                client.send(JSON.stringify([]));
+            }
         }
-        for (const client of wss.clients) {
-            client.send(JSON.stringify({
-                image: data,
-                detection: (filtered ?? []).flat()
-            }));
-        }
-    } catch {
-        console.log('skipping frame, jpeg corrupted');
+    } catch (error) {
+        console.error(error);
+        console.log('skipping frame');
     }
+});
+stream.stderr.on('data', (data) => {
+    console.log(data.toString());
 });
 //get current frame from ip camera
 app.post('/frame/:second', async (req, res) => {
@@ -199,9 +229,6 @@ app.post('/frame/:second', async (req, res) => {
         }, 10);
     });
 });
-stream.stderr.on('data', (data) => {
-    console.log(data.toString());
-});
 
 var cleanExit = function() {
     console.log('killing ffmpeg child process (if this fails, use `sudo killall ffmpeg`)');
@@ -210,9 +237,3 @@ var cleanExit = function() {
 }
 process.on('SIGINT', cleanExit); // catch ctrl-c
 process.on('SIGTERM', cleanExit); // catch kill
-
-app.post('/*', (req, res, next) => {
-    if (req.baseUrl == '/login') next();
-    if (typeof req.cookies.token !== 'string' || !sessionTokens.has(req.cookies.token)) res.sendStatus(401);
-    else next();
-});
