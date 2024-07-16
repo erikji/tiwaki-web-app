@@ -66,14 +66,14 @@ app.post('/login', express.urlencoded({ extended: false }), (req, res) => {
 app.post('/logout', (req, res) => {
     res.clearCookie('token');
     sessionTokens.delete(req.cookies.token);
-    console.log(`deleting ${req.cookies.token}`);
+    console.log(`deleting ${req.cookies.token} (/logout)`);
     res.redirect('/login');
 });
 setInterval(() => {
     sessionTokens.forEach((value, key, map) => {
         if (value < Date.now()) {
             map.delete(key);
-            console.log(`deleting ${key}`);
+            console.log(`deleting ${key} (timeout)`);
         }
     });
 }, 5000);

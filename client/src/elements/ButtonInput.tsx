@@ -3,7 +3,7 @@ function ButtonInput({ disabled=false, text, onClick }: { disabled?: boolean, te
         border: disabled ? '4px solid gray' : '4px solid black',
         margin: '8px',
         backgroundColor: 'transparent',
-        cursor: 'grab',
+        cursor: disabled ? 'auto' : 'grab',
         fontSize: '1.5vw'
     }
     return <button style={style} onClick={onClick}>{text}</button>

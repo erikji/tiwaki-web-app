@@ -11,7 +11,7 @@ const CONFIDENCE = 0.5;
 
 function Preview() {
     const [yoloLabelEnabled, setYoloLabelEnabled] = useState(true);
-    const [currentImageURL, setCurrentImageURL] = useState('');
+    const [currentImageURL, setCurrentImageURL] = useState('loading.svg');
     const [currentBoundingBoxes, setCurrentBoundingBoxes] = useState<Array<BoundingBox>>([]);
 
     const iou = (one: BoundingBox, two: BoundingBox) => {
