@@ -3,7 +3,7 @@ import { useRef, useEffect } from "react";
 const classMap = ['Boar', 'Bear', 'Deer'];
 const labelColorMap = ['#0FF', '#F0F', '#FF0'];
 
-function YOLOCanvas({ width, height, boxes=[], position='absolute', zIndex=0 }: { width: number, height: number, boxes?: Array<BoundingBox>, position?: string, zIndex?: number }) {
+function YOLOCanvas({ width, height, greedy=false, boxes=[], position='absolute', zIndex=0 }: { width: number, height: number, greedy?: boolean, boxes?: Array<BoundingBox>, position?: string, zIndex?: number }) {
     const style = {
         position: position,
         left: '0',
@@ -12,8 +12,8 @@ function YOLOCanvas({ width, height, boxes=[], position='absolute', zIndex=0 }: 
         marginLeft: 'auto',
         marginRight: 'auto',
         border: '1px solid white',
-        width: '30vw',
-        height: '30vw',
+        width: 'auto',
+        height: greedy ? '100%' : '30vw',
         zIndex: zIndex
     } as React.CSSProperties;
     const canvasElmnt = useRef<HTMLCanvasElement>(null);

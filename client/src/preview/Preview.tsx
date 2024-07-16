@@ -5,6 +5,7 @@ import FullPage from "../layout/FullPage";
 import RelativeBox from "../layout/RelativeBox";
 import BorderedCanvas from "../elements/BorderedCanvas";
 import YOLOCanvas, { BoundingBox } from "./YOLOCanvas";
+import FullscreenBox from "../layout/FullscreenBox";
 
 const NUM_CLASSES = 3;
 const CONFIDENCE = 0.5;
@@ -90,8 +91,10 @@ function Preview() {
             <ButtonInput text={yoloLabelEnabled ? 'Hide YOLO Label' : 'Show YOLO Label'} onClick={()=>{setYoloLabelEnabled(!yoloLabelEnabled)}} />
           </Center>
           <RelativeBox>
-            <BorderedCanvas width={640} height={640} position='block' url={currentImageURL}></BorderedCanvas>
-            <YOLOCanvas width={640} height={640} boxes={currentBoundingBoxes}></YOLOCanvas>
+            <FullscreenBox>
+                <BorderedCanvas width={640} height={640} greedy={true} url={currentImageURL}></BorderedCanvas>
+                <YOLOCanvas width={640} height={640} greedy={true} boxes={currentBoundingBoxes}></YOLOCanvas>
+            </FullscreenBox>
           </RelativeBox>
         </FullPage>
     );

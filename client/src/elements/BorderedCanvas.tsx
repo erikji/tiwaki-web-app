@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-function BorderedCanvas({ width, height, url='https://upload.wikimedia.org/wikipedia/commons/d/dd/Loading_spinner.svg', position='absolute', zIndex=0 }: { width: number, height: number, url?: string, position?: string, zIndex?: number }) {
+function BorderedCanvas({ width, height, greedy=false, url='https://upload.wikimedia.org/wikipedia/commons/d/dd/Loading_spinner.svg', position='absolute', zIndex=0 }: { width: number, height: number, greedy?: boolean, url?: string, position?: string, zIndex?: number }) {
     const style = {
         position: position,
         left: '0',
@@ -9,8 +9,8 @@ function BorderedCanvas({ width, height, url='https://upload.wikimedia.org/wikip
         marginLeft: 'auto',
         marginRight: 'auto',
         border: '1px solid white',
-        width: '30vw',
-        height: '30vw',
+        width: 'auto',
+        height: greedy ? '100%' : '30vw',
         zIndex: zIndex
     } as React.CSSProperties;
     const canvasElmnt = useRef<HTMLCanvasElement>(null);
