@@ -180,7 +180,7 @@ stream.stdout.on('data', async (data) => {
         }
 
         if (schedule[(new Date()).getDay()][(new Date()).getHours()]) {
-            let filtered: Array<Array<number>> = [[],[],[],[],[],[],[]];
+            let filtered: Array<Array<number>> = new Array(NUM_CLASSES + 4).fill([]);
             const raw = sharp(data).raw();
             const transposed = Buffer.concat([await raw.extractChannel(0).toBuffer(), await raw.extractChannel(1).toBuffer(), await raw.extractChannel(2).toBuffer()], 3 * 640 * 640);
             const float32 = new Float32Array(3 * 640 * 640);
