@@ -4,7 +4,7 @@ import { v4 as uuidV4 } from 'uuid';
 import cookieParser from 'cookie-parser';
 import { configDotenv } from 'dotenv';
 import * as ort from 'onnxruntime-node';
-import child_process from 'child_process';
+import child_process, { exec } from 'child_process';
 import { WebSocketServer } from 'ws';
 import sharp from 'sharp';
 import fs from 'node:fs';
@@ -135,7 +135,11 @@ app.post('/schedule', express.json(), (req, res) => {
 //setup onnx model
 let sess;
 const loadONNX = async () => {
-    sess = await ort.InferenceSession.create(path.join(__dirname, '../model.onnx'), {executionProviders: ['cuda', 'cpu']});
+    const executionProviders = ['cpu'];
+    if (typeof process.env['EXECUTION_PROVIDER'] == 'string') {
+        executionProviders.unshift(process.env['EXECUTION_PROVIDER']);
+    }
+    sess = await ort.InferenceSession.create(path.join(__dirname, '../model.onnx'), {executionProviders: executionProviders});
 }
 loadONNX();
 
