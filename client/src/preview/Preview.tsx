@@ -6,6 +6,7 @@ import RelativeBox from "../layout/RelativeBox";
 import BorderedCanvas from "../elements/BorderedCanvas";
 import YOLOCanvas, { BoundingBox } from "./YOLOCanvas";
 import FullscreenBox from "../layout/FullscreenBox";
+import PolygonSVG from "../settings/polygon/PolygonSVG";
 
 const NUM_CLASSES = 3;
 const CONFIDENCE = 0.5;
@@ -14,6 +15,7 @@ function Preview() {
     const [yoloLabelEnabled, setYoloLabelEnabled] = useState(true);
     const [currentImageURL, setCurrentImageURL] = useState('loading.svg');
     const [currentBoundingBoxes, setCurrentBoundingBoxes] = useState<Array<BoundingBox>>([]);
+    const [polygons, setPolygons] = useState([]);
 
     const iou = (one: BoundingBox, two: BoundingBox) => {
         //bb1 and bb2 have leftX leftY rightX rightY formatting
@@ -51,7 +53,7 @@ function Preview() {
                         confidence: cpuData[i + j * (cpuData.length / (NUM_CLASSES + 4))]
                     };
 
-                    //Non-max suppression with iou of `CONFIDENCE`
+                    //Non-max suppression with iou of 0.5
                     const newDetected = new Array<BoundingBox>();
                     let includeNew = true;
                     for (const i of detected) {
@@ -71,6 +73,7 @@ function Preview() {
                         newDetected.push(cur);
                     }
                     detected = newDetected;
+                    break;
                 }
             }
         }
@@ -85,6 +88,12 @@ function Preview() {
             setCurrentBoundingBoxes(nms(data.detection));
         });
     }, []);
+
+    useEffect(() => {
+        const stored = window.localStorage.getItem('react-drawing') ?? '[]';
+        setPolygons(JSON.parse(stored));
+    }, [currentImageURL]);
+
     return (
         <FullPage>
           <Center>
@@ -93,6 +102,7 @@ function Preview() {
           <RelativeBox>
             <FullscreenBox>
                 <BorderedCanvas width={640} height={640} greedy={true} url={currentImageURL}></BorderedCanvas>
+                <PolygonSVG width={640} height={640} greedy={true} polygons={polygons} stroke='black' fill='black' />
                 <YOLOCanvas width={640} height={640} greedy={true} boxes={currentBoundingBoxes}></YOLOCanvas>
             </FullscreenBox>
           </RelativeBox>

@@ -4,7 +4,7 @@ import { v4 as uuidV4 } from 'uuid';
 import cookieParser from 'cookie-parser';
 import { configDotenv } from 'dotenv';
 import * as ort from 'onnxruntime-node';
-import child_process, { exec } from 'child_process';
+import child_process from 'child_process';
 import { WebSocketServer } from 'ws';
 import sharp from 'sharp';
 import fs from 'node:fs';
@@ -107,7 +107,7 @@ app.post('/polygon', express.json(), async (req, res) => {
         res.sendStatus(200);
         return;
     }
-    let svgString = `<svg viewBox="0 0 640 640" width="640" height="640">`;
+    let svgString = `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" width="${WIDTH}" height="${HEIGHT}">`;
     for (const polygon of req.body) {
         svgString += `<polyline fill="#000" points="`;
         svgString += polygon.map(pt => `${pt.x},${pt.y}`).join(' ');
@@ -115,8 +115,7 @@ app.post('/polygon', express.json(), async (req, res) => {
     }
     svgString += `</svg>`;
     try {
-        mask = await sharp(Buffer.from(svgString)).toFormat('png').toBuffer();
-        fs.writeFile('img/' + uuidV4() + '.png', mask, () => {});
+        mask = await sharp(Buffer.from(svgString)).toBuffer();
         res.sendStatus(200);
     } catch (error) {
         console.log(error);
@@ -144,7 +143,10 @@ const loadONNX = async () => {
 loadONNX();
 
 const NUM_CLASSES = 3;
-const CONFIDENCE = 0.1;
+const CONFIDENCE = 0.15;
+const WIDTH = 640;
+const HEIGHT = 640;
+const NUM_PIXELS = WIDTH * HEIGHT;
 
 //setup websockets
 const wss = new WebSocketServer({ port: parseInt(process.env.WS_PORT ?? '6386') }).on('connection', (ws, req) => {
@@ -160,7 +162,7 @@ const spawnOptions = [
     '-f', // tell ffmpeg to output images
     'image2',
     '-vf',// change image dimensions and fps
-    'scale=640:640,fps=10',
+    `scale=${WIDTH}:${HEIGHT},fps=10`,
     '-update', // https://superuser.com/questions/1819949/what-is-the-update-option-in-ffmpeg
     '1',
     '-' // tell ffmpeg to send it to stdout
@@ -179,25 +181,27 @@ stream.stdout.on('data', async (data) => {
         return;
     }
     try {
-        if (mask != undefined) {
-            data = await sharp(data).composite([{ input: mask, blend: 'multiply' }]).toBuffer();
-        }
-
         if (schedule[(new Date()).getDay()][(new Date()).getHours()]) {
-            let filtered: Array<Array<number>> = new Array(NUM_CLASSES + 4).fill([]);
-            const raw = sharp(data).raw();
-            const transposed = Buffer.concat([await raw.extractChannel(0).toBuffer(), await raw.extractChannel(1).toBuffer(), await raw.extractChannel(2).toBuffer()], 3 * 640 * 640);
-            const float32 = new Float32Array(3 * 640 * 640);
-            for (let i = 0; i < transposed.length; i++) {
-                float32[i] = transposed[i] / 255.0;
+            let raw: Buffer;
+            if (mask != undefined) {
+                raw = await sharp(data).composite([{ input: mask, blend: 'multiply' }]).raw().toBuffer();
+            } else {
+                raw = await sharp(data).raw().toBuffer();
             }
-            const output = (await sess.run({images: new ort.Tensor('float32', float32, [1, 3, 640, 640])})).output0;
+            const float32 = new Float32Array(3 * NUM_PIXELS);
+            for (let channel = 0; channel < 3; channel++) {
+                for (let pixel = 0; pixel < NUM_PIXELS; pixel++) {
+                    float32[pixel + channel * NUM_PIXELS] = raw[pixel * 3 + channel] / 255.0;
+                }
+            }
+            const output = (await sess.run({images: new ort.Tensor(float32, [1, 3, WIDTH, HEIGHT])})).output0;
+            let filtered: Array<Array<number>> = Array.from({ length: NUM_CLASSES + 4 }, () => []);
             for (let i = 0; i < output.cpuData.length / (NUM_CLASSES + 4); i++) {
                 for (let j = 4; j < NUM_CLASSES + 4; j++) {
                     if (output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))] > CONFIDENCE) {
-                        for (j = 0; j < NUM_CLASSES + 4; j++) {
-                            filtered[j].push(output.cpuData[i + j * (output.cpuData.length / (NUM_CLASSES + 4))]);
-                        }   
+                        for (let k = 0; k < NUM_CLASSES + 4; k++) {
+                            filtered[k].push(output.cpuData[i + k * (output.cpuData.length / (NUM_CLASSES + 4))]);
+                        }
                         break;
                     }
                 }

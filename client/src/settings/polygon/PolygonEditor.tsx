@@ -21,6 +21,7 @@ function PolygonEditor() {
     const [hideSVG, setHideSVG] = useState(false);
 
     const handleGetCameraImage = async () => {
+        setCanvasURL('loading.svg');
         const imgBlob = await (await fetch('frame/' + Math.floor(Date.now()/1000).toString(), { method: 'POST' })).blob();
         setCanvasURL(URL.createObjectURL(imgBlob));
     }
