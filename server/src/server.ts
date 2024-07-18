@@ -107,7 +107,7 @@ app.post('/polygon', express.json(), async (req, res) => {
         res.sendStatus(200);
         return;
     }
-    let svgString = `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" width="${WIDTH}" height="${HEIGHT}">`;
+    let svgString = `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" width="${WIDTH}" height="${HEIGHT}"><rect fill="#fff" width="${HEIGHT}" height="${HEIGHT}" />`;
     for (const polygon of req.body) {
         svgString += `<polyline fill="#000" points="`;
         svgString += polygon.map(pt => `${pt.x},${pt.y}`).join(' ');
@@ -115,7 +115,7 @@ app.post('/polygon', express.json(), async (req, res) => {
     }
     svgString += `</svg>`;
     try {
-        mask = await sharp(Buffer.from(svgString)).toBuffer();
+        mask = await sharp(Buffer.from(svgString)).jpeg().removeAlpha().toBuffer();
         res.sendStatus(200);
     } catch (error) {
         console.log(error);
@@ -184,9 +184,9 @@ stream.stdout.on('data', async (data) => {
         if (schedule[(new Date()).getDay()][(new Date()).getHours()]) {
             let raw: Buffer;
             if (mask != undefined) {
-                raw = await sharp(data).composite([{ input: mask, blend: 'multiply' }]).raw().toBuffer();
+                raw = await sharp(data).composite([{ input: mask, blend: 'darken' }]).raw().removeAlpha().toBuffer();
             } else {
-                raw = await sharp(data).raw().toBuffer();
+                raw = await sharp(data).raw().removeAlpha().toBuffer();
             }
             const float32 = new Float32Array(3 * NUM_PIXELS);
             for (let channel = 0; channel < 3; channel++) {

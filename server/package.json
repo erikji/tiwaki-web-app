@@ -2,7 +2,8 @@
     "scripts": {
         "compile": "npx tsc",
         "start": "node build/server.js --expose-gc",
-        "compilerun": "npm run compile && npm run start"
+        "compilerun": "npm run compile && npm run start",
+        "nuke": "cd ../client && npx vite build && cd ../server && npm run compilerun"
     },
     "dependencies": {
         "child_process": "^1.0.2",
