@@ -184,17 +184,18 @@ stream.stdout.on('data', async (data) => {
         if (schedule[(new Date()).getDay()][(new Date()).getHours()]) {
             let raw: Buffer;
             if (mask != undefined) {
-                raw = await sharp(data).composite([{ input: mask, blend: 'darken' }]).raw().removeAlpha().toBuffer();
+                raw = await sharp(data).composite([{ input: mask, blend: 'darken' }]).raw().toBuffer();
             } else {
-                raw = await sharp(data).raw().removeAlpha().toBuffer();
+                raw = await sharp(data).raw().toBuffer();
             }
             const float32 = new Float32Array(3 * NUM_PIXELS);
+            const numChannels = raw.length / NUM_PIXELS;
             for (let channel = 0; channel < 3; channel++) {
                 for (let pixel = 0; pixel < NUM_PIXELS; pixel++) {
-                    float32[pixel + channel * NUM_PIXELS] = raw[pixel * 3 + channel] / 255.0;
+                    float32[pixel + channel * NUM_PIXELS] = raw[pixel * numChannels + channel] / 255.0;
                 }
             }
-            const output = (await sess.run({images: new ort.Tensor(float32, [1, 3, WIDTH, HEIGHT])})).output0;
+            const output = (await sess.run({ images: new ort.Tensor(float32, [1, 3, WIDTH, HEIGHT]) })).output0;
             let filtered: Array<Array<number>> = Array.from({ length: NUM_CLASSES + 4 }, () => []);
             for (let i = 0; i < output.cpuData.length / (NUM_CLASSES + 4); i++) {
                 for (let j = 4; j < NUM_CLASSES + 4; j++) {
