@@ -1,12 +1,13 @@
+import http from 'http';
 import express from 'express';
 import path from 'path';
-import uuid from 'uuid';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
-import ort from 'onnxruntime-node';
+import { v4 as uuidv4 } from 'uuid';
 import ws from 'ws';
-import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
+import sharp from 'sharp';
+import * as ort from 'onnxruntime-node';
+import dotenv from 'dotenv';
 dotenv.configDotenv({ path: path.resolve(__dirname, '../config/.env') });
 
 if (typeof process.env.CAMERA_URL !== 'string') {
@@ -16,8 +17,8 @@ if (typeof process.env.CAMERA_URL !== 'string') {
 
 //setup server (spaghetti)
 const app = express().use(cookieParser());
-app.listen(process.env.HTTP_PORT ?? 6385);
-console.log(`listening on port ${process.env.HTTP_PORT ?? 6385}`);
+const server = http.createServer(app).listen(process.env.PORT ?? 6385);
+console.log(`listening on port ${process.env.PORT ?? 6385}`);
 app.get('/*', express.static(path.resolve(__dirname, '../../client/dist')));
 app.get('*', (req, res) => {
     res.status(404);
@@ -43,7 +44,7 @@ app.post('/login', express.urlencoded({ extended: false }), (req, res) => {
     }
     //really bad verification system
     if (verify(req.body.username, req.body.password)) {
-        const token = uuid.v4();
+        const token = uuidv4();
         res.cookie('token', token, { expires: new Date(Date.now() + 86400000) });
         sessionTokens.set(token, Date.now() + 86400000);
         res.redirect('/');
@@ -126,7 +127,7 @@ const loadONNX = async () => {
 loadONNX();
 
 //setup websockets
-const wss = new ws.WebSocketServer({ port: parseInt(process.env.WS_PORT ?? '6386') }).on('connection', (ws, req) => {
+const wss = new ws.WebSocketServer({ server }).on('connection', (ws, req) => {
     if (req.headers.cookie == null || req.headers.cookie!.split('=')[0] !== 'token' || req.headers.cookie!.split('=').length !== 2 || sessionTokens.get(req.headers.cookie!.split('=')[1]) == null) {
         ws.terminate();
     }

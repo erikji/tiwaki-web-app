@@ -81,7 +81,7 @@ function Preview() {
     }
 
     useEffect(() => {
-        const ws = new WebSocket('ws://localhost:6386');
+        const ws = new WebSocket('');
         ws.addEventListener('message', async (event) => {
             const data = JSON.parse(event.data);
             setCurrentImageURL(URL.createObjectURL(new Blob([Uint8Array.from(data.image.data)])));
