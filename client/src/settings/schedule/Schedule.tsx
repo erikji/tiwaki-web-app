@@ -6,22 +6,23 @@ import Center from "../../layout/Center";
 const weekdayMap = ['月', '火', '水', '木', '金', '土', '日'];
 
 function Schedule({ numDays, numHours }: { numDays: number, numHours: number}) {
-    const [state, setState] = useState<Array<Array<boolean>>>(new Array(numDays).fill(new Array(numHours).fill(true)));
+    //flatten a 2d array into 1d
+    const [state, setState] = useState<Array<boolean>>(new Array(numDays * numHours).fill(true));
 
     const toggleAll = () => {
-        let allEnabled = state.every(day => day.every(hr => hr));
-        setState(state.map(d => d.map(() => !allEnabled)));
+        let allEnabled = state.every(h => h);
+        setState(state.map(() => !allEnabled));
     }
     const toggleHour = (hr: number) => {
-        let allEnabled = state.every(day => day[hr]);
-        setState(state.map(d => d.map((h, indexHr) => indexHr == hr ? !allEnabled : h)));
+        let allEnabled = state.every((h, index) => index % numHours != hr || h);
+        setState(state.map((h, index) => index % numHours == hr ? !allEnabled : h));
     }
     const toggleDay = (day: number) => {
-        let allEnabled = state[day].every(hr => hr);
-        setState(state.map((d, indexDay) => indexDay == day ? d.fill(!allEnabled) : d));
+        let allEnabled = state.every((h, index) => index / numHours != day || h);
+        setState(state.map((h, index) => Math.floor(index / numHours) == day ? !allEnabled : h));
     }
-    const toggleDayHour = (day: number, hr: number) => {
-        setState(state.map((d, indexDay) => d.map((h, indexHr) => indexHr == hr && indexDay == day ? !h : h)));
+    const toggleDayHour = (dayHour: number) => {
+        setState(state.map((h, index) => index == dayHour ? !h : h));
     }
 
     useEffect(() => {
@@ -29,15 +30,15 @@ function Schedule({ numDays, numHours }: { numDays: number, numHours: number}) {
     }, [state]);
 
     let allRows = [];
-    let topRow = [<DayHour key={-1} enabled={state.every(day => day.every(hr => hr))} handleClick={toggleAll}> </DayHour>];
-    for (let i = 0; i < numHours; i++) {
-        topRow.push(<DayHour key={i} enabled={state.every(day => day[i])} handleClick={() => {toggleHour(i)}}>{i+1}</DayHour>);
+    let topRow = [<DayHour key={-1} enabled={state.every(h => h)} handleClick={toggleAll}> </DayHour>];
+    for (let hr = 0; hr < numHours; hr++) {
+        topRow.push(<DayHour key={hr} enabled={state.every((h, index) => index % numHours != hr || h)} handleClick={() => {toggleHour(hr)}}>{hr+1}</DayHour>);
     }
     allRows.push(<Row key={-1}>{topRow}</Row>);
     for (let day = 0; day < numDays; day++) {
-        let curRow = [<DayHour key={-1} enabled={state[day].every(hr => hr)} handleClick={() => {toggleDay(day)}}>{weekdayMap[day] ?? day+1}</DayHour>];
+        let curRow = [<DayHour key={-1} enabled={state.every((h, index) => Math.floor(index / numHours) != day || h)} handleClick={() => {toggleDay(day)}}>{weekdayMap[day] ?? day+1}</DayHour>];
         for (let hr = 0; hr < numHours; hr++) {
-            curRow.push(<DayHour key={hr} enabled={state[day][hr]} handleClick={() => {toggleDayHour(day, hr)}} />);
+            curRow.push(<DayHour key={hr} enabled={state[day*numHours+hr]} handleClick={() => {toggleDayHour(day*numHours+hr)}} />);
         }
         allRows.push(<Row key={day}>{curRow}</Row>);
     }
