@@ -91,13 +91,8 @@ app.post('/polygon', express.json(), async (req, res) => {
         svgString += `"></polyline>`;
     }
     svgString += `</svg>`;
-    try {
-        mask = await sharp(Buffer.from(svgString)).toBuffer();
-        res.sendStatus(200);
-    } catch (error) {
-        console.error(error);
-        res.sendStatus(400);
-    }
+    mask = await sharp(Buffer.from(svgString)).toBuffer();
+    res.sendStatus(200);
 })
 app.post('/schedule', express.json(), (req, res) => {
     if (!Array.isArray(req.body) || req.body.length != 24 * 7 || req.body.some(elmnt => typeof elmnt != 'boolean')) {
@@ -184,7 +179,10 @@ ffmpeg(process.env.CAMERA_URL).outputOptions([
             }
         } else {
             for (const client of wss.clients) {
-                client.send(JSON.stringify([]));
+                client.send(JSON.stringify({
+                    image: data,
+                    detection: []
+                }));
             }
         }
     } catch (error) {

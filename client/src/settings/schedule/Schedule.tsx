@@ -7,7 +7,11 @@ const weekdayMap = ['月', '火', '水', '木', '金', '土', '日'];
 
 function Schedule({ numDays, numHours }: { numDays: number, numHours: number}) {
     //flatten a 2d array into 1d
-    const [state, setState] = useState<Array<boolean>>(new Array(numDays * numHours).fill(true));
+    const [state, setState] = useState<Array<boolean>>(() => {
+        const stored = window.localStorage.getItem('react-schedule') ?? JSON.stringify(new Array(numDays * numHours).fill(true));
+        fetch('schedule', { method: 'POST', body: stored, headers: { 'Content-Type': 'application/json' }});
+        return JSON.parse(stored);
+    });
 
     const toggleAll = () => {
         let allEnabled = state.every(h => h);
@@ -26,6 +30,7 @@ function Schedule({ numDays, numHours }: { numDays: number, numHours: number}) {
     }
 
     useEffect(() => {
+        window.localStorage.setItem('react-schedule', JSON.stringify(state));
         fetch('schedule', { method: 'POST', body: JSON.stringify(state), headers: { 'Content-Type': 'application/json' }});
     }, [state]);
 
