@@ -7,13 +7,14 @@ import BorderedCanvas from "../elements/BorderedCanvas";
 import YOLOCanvas, { BoundingBox } from "./YOLOCanvas";
 import FullscreenBox from "../layout/FullscreenBox";
 import PolygonSVG from "../settings/polygon/PolygonSVG";
+import loadingSVG from '../assets/loading.svg';
 
 const NUM_CLASSES = 3;
 const CONFIDENCE = 0.5;
 
 function Preview() {
     const [yoloLabelEnabled, setYoloLabelEnabled] = useState(true);
-    const [currentImageURL, setCurrentImageURL] = useState('loading.svg');
+    const [currentImageURL, setCurrentImageURL] = useState(loadingSVG);
     const [currentBoundingBoxes, setCurrentBoundingBoxes] = useState<Array<BoundingBox>>([]);
     const [polygons, setPolygons] = useState([]);
 

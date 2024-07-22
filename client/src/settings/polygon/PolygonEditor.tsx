@@ -5,13 +5,14 @@ import ButtonInput from "../../elements/ButtonInput";
 import Center from "../../layout/Center";
 import RelativeBox from "../../layout/RelativeBox";
 import Column from "../../layout/Column";
+import loadingSVG from '../../assets/loading.svg';
 
 //handleSVGClick
 let lastX = -1;
 let lastY = -1;
 
 function PolygonEditor() {
-    const [canvasURL, setCanvasURL] = useState('loading.svg');
+    const [canvasURL, setCanvasURL] = useState(loadingSVG);
     const [polygons, setPolygons] = useState<Array<Array<Point>>>(() => {
         const stored = window.localStorage.getItem('react-drawing') ?? '[]'
         fetch('polygon', { method: 'POST', body: stored, headers: { 'Content-Type': 'application/json' }});
@@ -21,7 +22,7 @@ function PolygonEditor() {
     const [hideSVG, setHideSVG] = useState(false);
 
     const handleGetCameraImage = async () => {
-        setCanvasURL('loading.svg');
+        setCanvasURL(loadingSVG);
         const imgBlob = await (await fetch('frame/' + Math.floor(Date.now()/1000).toString(), { method: 'POST' })).blob();
         setCanvasURL(URL.createObjectURL(imgBlob));
     }
