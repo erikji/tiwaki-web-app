@@ -13,3 +13,7 @@ export function add() {
     sessions.set(token, Date.now() + 3600000);
     return token;
 }
+export function del(token: string) {
+    sessions.delete(token);
+    return token;
+}
