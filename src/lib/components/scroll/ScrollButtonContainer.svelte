@@ -1,13 +1,14 @@
 <script lang="ts">
-    export let tabs: Array<String> = [];
+    export let tabs: string[] = [];
     export let enabled = 0;
 </script>
 
 <div class="outer">
     {#each tabs as tab, i (i)}
-        <div class="button" style="background-color: {enabled == i ? 'lightgray' : 'white'}">
+        <label class="button" style="background-color: {enabled == i ? 'lightgray' : 'white'}; height: calc(100% / {tabs.length})">
             <p class="text">{tab}</p>
-        </div>
+            <input type="radio" bind:group={enabled} value={i} />
+        </label>
     {/each}
 </div>
 
@@ -20,6 +21,7 @@
         padding-right: 5px;
         font-size: 3vw;
         width: 15vw;
+        height: 100%;
     }
     .button {
         height: 100%;
@@ -28,6 +30,11 @@
         cursor: grab;
         transition: 500ms ease;
         display: flex;
+        border: 0;
+        font-size: 3vw;
+    }
+    input {
+        display: none;
     }
     .text {
         margin: auto;
