@@ -6,14 +6,15 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/api': {
-				target: 'http://localhost:6385',
+				target: 'http://localhost:' + (process.env.PORT ?? 6385),
 				rewrite: (path) => path.replace(/^\/api/, '')
 			}, 
 			'/ws': {
-				target: 'ws://localhost:6385',
+				target: 'ws://localhost:' + (process.env.PORT ?? 6385),
 				ws: true,
 				rewrite: (path) => path.replace(/^\/ws/, '')
 			}
 		}
-	}
+	},
+	envDir: '../server/config'
 });
