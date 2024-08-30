@@ -1,10 +1,10 @@
 # tiwaki-web-app
 
-Note that unlike React version, frontend and backend are two separate servers.
+Note that unlike React version, frontend and backend are two separate servers which must be run at the same time.
 
 Create/modify the file `server/config/.env` and specify the following variables:
-* `PORT` which changes the port the server is run on (and which port the client tries to connect to). It defaults to `6385`.
-* `EXECUTION_PROVIDER` which changes the execution provider of the ONNX model. If none are specified, `cpu` is used as a fallback. See [ONNX Runtime API reference](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.ExecutionProviderOption.html) for information on the possible execution providers.
+* (optional) `PORT` which changes the port the server is run on (and which port the client tries to connect to). It defaults to `6385`.
+* (optional) `EXECUTION_PROVIDER` which changes the execution provider of the ONNX model. If none are specified, `cpu` is used as a fallback. See [ONNX Runtime API reference](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.ExecutionProviderOption.html) for information on the possible execution providers.
 * `CAMERA_URL` which specifies the url of the RTSP stream to draw from.
 
 ## Building client
